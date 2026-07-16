@@ -1,0 +1,2 @@
+import { Loader } from "@/components/shared/loader";
+export default function Loading() { return <Loader fullScreen label="Preparing your LearnOS experience..." />; }

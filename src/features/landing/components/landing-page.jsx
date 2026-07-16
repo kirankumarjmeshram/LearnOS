@@ -1,0 +1,46 @@
+"use client";
+
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight, BrainCircuit, CalendarDays, CheckCircle2, ClipboardCheck, Compass, GraduationCap, Layers3, Sparkles, Target } from "lucide-react";
+
+import { Logo } from "@/components/common/logo";
+import { Navbar } from "@/components/layout/navbar";
+import { ROUTES } from "@/constants/routes";
+
+const features = [
+  [BrainCircuit, "AI Mentor", "Context-aware guidance that meets learners where they are."],
+  [Compass, "Adaptive Roadmaps", "Plans that can evolve with progress, time, and confidence."],
+  [Layers3, "Knowledge Engine", "Learning material organized into connected, useful concepts."],
+  [ClipboardCheck, "Assignments", "Practical work designed to turn study into capability."],
+  [CheckCircle2, "Quizzes", "Understanding checks that reveal what needs attention."],
+  [Target, "Progress Tracking", "A clear view of consistency, momentum, and outcomes."],
+  [CalendarDays, "Calendar", "Learning sessions shaped around a real schedule."],
+  [GraduationCap, "Resource Import", "Bring trusted notes and materials into one learning space."],
+];
+const steps = ["Goal", "Assessment", "Roadmap", "Learning Sessions", "Projects", "Career Ready"];
+const testimonials = [
+  ["A focused plan would have saved me weeks of deciding what to learn next.", "Maya R.", "Software engineer"],
+  ["I want a learning tool that respects a busy work week instead of pretending I have unlimited time.", "Arjun S.", "Product manager"],
+  ["The promise is simple: help me turn a career goal into consistent action.", "Nora K.", "University student"],
+];
+const faqs = [
+  ["Is LearnOS another course platform?", "No. LearnOS is designed around a learner's goal, context, and progress—not a fixed catalogue of courses."],
+  ["Can I learn subjects beyond technology?", "Yes. The product vision supports any outcome-driven learning goal, from technical skills to academics and creative practice."],
+  ["Will LearnOS replace my existing resources?", "No. It is designed to help organize and use the best resources for a learner, including their own materials."],
+  ["When will the learning workspace be available?", "The product foundation is actively being developed. Join the waitlist through Get started to follow progress."],
+];
+
+const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
+
+export function LandingPage() {
+  return <div className="overflow-x-hidden"><Navbar /><main>
+    <section className="relative isolate px-5 pb-22 pt-20 sm:pb-28 sm:pt-28"><div className="absolute inset-x-0 top-0 -z-10 h-120 bg-[radial-gradient(circle_at_50%_0%,var(--secondary),transparent_65%)]" /><motion.div initial="hidden" animate="visible" transition={{ staggerChildren: 0.1 }} className="mx-auto max-w-4xl text-center"><motion.div variants={fadeUp} className="mx-auto mb-6 flex w-fit items-center gap-2 rounded-full border bg-[var(--card)] px-4 py-2 text-sm text-[var(--muted-foreground)]"><Sparkles className="size-4 text-[var(--primary)]" /> Personal learning, built around you</motion.div><motion.h1 variants={fadeUp} className="text-balance text-5xl font-semibold tracking-[-0.045em] sm:text-7xl">Learn anything.<br /><span className="text-[var(--primary)]">Move with purpose.</span></motion.h1><motion.p variants={fadeUp} className="mx-auto mt-7 max-w-2xl text-pretty text-lg leading-8 text-[var(--muted-foreground)] sm:text-xl">LearnOS is the AI Operating System for Learning Anything—built to turn an ambitious goal into a learning journey you can actually follow.</motion.p><motion.div variants={fadeUp} className="mt-9 flex flex-col justify-center gap-3 sm:flex-row"><Link href={ROUTES.SIGN_UP} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 font-semibold text-[var(--primary-foreground)] shadow-lg shadow-indigo-500/20 hover:opacity-90">Get started <ArrowRight className="size-4" /></Link><a href="#how-it-works" className="inline-flex items-center justify-center rounded-xl border bg-[var(--card)] px-5 py-3 font-semibold hover:bg-[var(--muted)]">Watch demo</a></motion.div></motion.div></section>
+    <section id="problem" className="border-y bg-[var(--card)] px-5 py-22"><div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-2 lg:items-center"><div><p className="text-sm font-semibold text-[var(--primary)]">Learning should not feel fragmented</p><h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">More resources have not made learning easier.</h2></div><p className="text-lg leading-8 text-[var(--muted-foreground)]">People spend too much energy comparing videos, articles, courses, and advice—then still wonder what to study today. Without context, structure, or adaptation, momentum is the first thing to disappear.</p></div></section>
+    <section id="solution" className="px-5 py-22"><div className="mx-auto max-w-6xl"><p className="text-sm font-semibold text-[var(--primary)]">One calm, connected system</p><h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">A learning journey that starts with your outcome.</h2><div className="mt-10 grid gap-5 md:grid-cols-3">{[["Understand", "Start with the goal, current knowledge, time, and preferred way to learn."], ["Organize", "Turn the right resources into a sequence of focused learning sessions."], ["Adapt", "Use progress signals to make the next step clearer—not more complicated."]].map(([title, body], index) => <motion.article initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} key={title} className="rounded-2xl border bg-[var(--card)] p-7 shadow-sm"><span className="text-sm font-semibold text-[var(--primary)]">0{index + 1}</span><h3 className="mt-4 text-xl font-semibold">{title}</h3><p className="mt-3 leading-7 text-[var(--muted-foreground)]">{body}</p></motion.article>)}</div></div></section>
+    <section id="features" className="bg-[var(--secondary)]/45 px-5 py-22"><div className="mx-auto max-w-6xl"><div className="max-w-2xl"><p className="text-sm font-semibold text-[var(--primary)]">Designed for real progress</p><h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A complete learning operating system.</h2></div><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{features.map(([Icon, title, body]) => <motion.article whileHover={{ y: -4 }} key={title} className="rounded-2xl border bg-[var(--card)] p-5"><span className="grid size-10 place-items-center rounded-xl bg-[var(--secondary)] text-[var(--primary)]"><Icon className="size-5" /></span><h3 className="mt-5 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{body}</p></motion.article>)}</div></div></section>
+    <section id="how-it-works" className="px-5 py-22"><div className="mx-auto max-w-6xl"><p className="text-sm font-semibold text-[var(--primary)]">How it works</p><h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">From ambition to action.</h2><ol className="mt-10 grid gap-3 md:grid-cols-6">{steps.map((step, index) => <li key={step} className="flex items-center gap-3 md:flex-col md:items-start"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--primary)] text-sm font-bold text-[var(--primary-foreground)]">{index + 1}</span><span className="font-medium">{step}</span>{index < steps.length - 1 && <ArrowRight className="hidden text-[var(--muted-foreground)] md:block" />}</li>)}</ol></div></section>
+    <section className="border-y bg-[var(--card)] px-5 py-22"><div className="mx-auto max-w-6xl"><p className="text-sm font-semibold text-[var(--primary)]">Built around learner reality</p><h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">What future learners expect.</h2><div className="mt-10 grid gap-4 lg:grid-cols-3">{testimonials.map(([quote, name, role]) => <figure key={name} className="rounded-2xl border p-6"><blockquote className="text-lg leading-8">“{quote}”</blockquote><figcaption className="mt-6 text-sm text-[var(--muted-foreground)]"><strong className="block text-[var(--foreground)]">{name}</strong>{role}</figcaption></figure>)}</div></div></section>
+    <section id="faq" className="px-5 py-22"><div className="mx-auto max-w-3xl"><p className="text-center text-sm font-semibold text-[var(--primary)]">FAQ</p><h2 className="mt-3 text-center text-3xl font-semibold tracking-tight sm:text-4xl">A clearer way to learn.</h2><div className="mt-10 divide-y rounded-2xl border bg-[var(--card)]">{faqs.map(([question, answer]) => <details key={question} className="group p-5"><summary className="cursor-pointer list-none font-semibold marker:hidden">{question}</summary><p className="mt-3 max-w-2xl leading-7 text-[var(--muted-foreground)]">{answer}</p></details>)}</div></div></section>
+  </main><footer className="border-t px-5 py-10"><div className="mx-auto flex max-w-6xl flex-col justify-between gap-5 sm:flex-row sm:items-center"><Logo /><p className="text-sm text-[var(--muted-foreground)]">© {new Date().getFullYear()} LearnOS. Learning, with direction.</p><div className="flex gap-4 text-sm text-[var(--muted-foreground)]"><a href="#features">Features</a><a href="#faq">FAQ</a></div></div></footer></div>;
+}

@@ -1,0 +1,22 @@
+
+
+
+Later Update
+3. Add Authorized JavaScript Origins
+
+Click Add URI and add:
+
+http://localhost:3000
+
+Later, after deployment, you'll add:
+
+https://your-vercel-app.vercel.app
+4. Add Authorized Redirect URIs
+
+Click Add URI and add:
+
+http://localhost:3000/api/google/callback
+
+Later add your production URL:
+
+https://your-vercel-app.vercel.app/api/google/callback

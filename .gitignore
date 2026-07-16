@@ -8,7 +8,15 @@ lerna-debug.log*
 /project plan
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+# codex
+# Codex
+.codex/
+.codex-cache/
 
+# folder stracture
+LearnOS.zip
+tree.txt
+src-tree.txt
 # Runtime data
 pids
 *.pid
