@@ -1,0 +1,31 @@
+"use client";
+
+import { BookOpen, FileText, Github, Image, Link2, Pencil, Plus, Trash2, Upload, Video } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+const resourceTypes = ["youtube", "documentation", "website", "pdf", "image", "drive", "github", "other"];
+const iconByType = { youtube: Video, documentation: BookOpen, article: FileText, book: BookOpen, exercise: Upload, website: Link2, pdf: FileText, image: Image, drive: Upload, github: Github, other: Link2 };
+const initialForm = { title: "", type: "website", url: "", description: "" };
+
+function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
+  const Icon = iconByType[resource.type] || Link2;
+  return <div className="rounded-xl border p-4"><a href={resource.url} target="_blank" rel="noreferrer" className="group flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--secondary)] text-[var(--primary)]"><Icon className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate font-medium group-hover:text-[var(--primary)]">{resource.title}</span><span className="mt-1 block text-sm leading-5 text-[var(--muted-foreground)]">{resource.description || resource.type}</span></span></a>{canEdit && <div className="mt-3 flex gap-2 border-t pt-3"><button type="button" onClick={() => onEdit(resource)} className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]"><Pencil className="size-3.5" />Edit</button><button type="button" onClick={() => onDelete(resource._id)} className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"><Trash2 className="size-3.5" />Delete</button></div>}</div>;
+}
+
+export function LessonResources({ lessonId, aiResources, initialUserResources }) {
+  const [userResources, setUserResources] = useState(initialUserResources);
+  const [form, setForm] = useState(initialForm);
+  const [editingId, setEditingId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const changeForm = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const resetForm = () => { setForm(initialForm); setEditingId(null); };
+  const saveResource = async (event) => {
+    event.preventDefault(); setIsSaving(true);
+    try { const response = await fetch(editingId ? `/api/resources/${editingId}` : `/api/lessons/${lessonId}/resources`, { method: editingId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error); setUserResources((current) => editingId ? current.map((resource) => resource._id === editingId ? payload.resource : resource) : [payload.resource, ...current]); toast.success(editingId ? "Resource updated." : "Resource added."); resetForm(); } catch (error) { toast.error(error.message || "We could not save this resource."); } finally { setIsSaving(false); }
+  };
+  const editResource = (resource) => { setEditingId(resource._id); setForm({ title: resource.title, type: resource.type, url: resource.url, description: resource.description || "" }); };
+  const deleteResource = async (resourceId) => { try { const response = await fetch(`/api/resources/${resourceId}`, { method: "DELETE" }); if (!response.ok) { const payload = await response.json(); throw new Error(payload.error); } setUserResources((current) => current.filter((resource) => resource._id !== resourceId)); toast.success("Resource deleted."); } catch (error) { toast.error(error.message || "We could not delete this resource."); } };
+
+  return <div className="space-y-5"><section className="rounded-2xl border bg-[var(--card)] p-6"><h2 className="text-xl font-semibold">AI Resources</h2><p className="mt-2 text-sm text-[var(--muted-foreground)]">Curated videos, official documentation, and practice links for this lesson.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{aiResources.map((resource) => <ResourceCard key={resource._id} resource={resource} />)}</div></section><section className="rounded-2xl border bg-[var(--card)] p-6"><h2 className="text-xl font-semibold">My Resources</h2><p className="mt-2 text-sm text-[var(--muted-foreground)]">Add links you want to keep with this lesson.</p>{userResources.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{userResources.map((resource) => <ResourceCard key={resource._id} resource={resource} canEdit onEdit={editResource} onDelete={deleteResource} />)}</div> : <p className="mt-5 rounded-xl border border-dashed p-4 text-sm text-[var(--muted-foreground)]">No personal resources yet. Add a link below to keep it with this lesson.</p>}<form onSubmit={saveResource} className="mt-6 grid gap-3 border-t pt-5 sm:grid-cols-2"><input required name="title" value={form.title} onChange={changeForm} placeholder="Resource title" className="rounded-xl border bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)]" /><select name="type" value={form.type} onChange={changeForm} className="rounded-xl border bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)]">{resourceTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select><input required name="url" value={form.url} onChange={changeForm} placeholder="https://..." className="rounded-xl border bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)] sm:col-span-2" /><input name="description" value={form.description} onChange={changeForm} placeholder="Optional description" className="rounded-xl border bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)] sm:col-span-2" /><div className="flex gap-2 sm:col-span-2"><button disabled={isSaving} className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] disabled:opacity-70"><Plus className="size-4" />{editingId ? "Update Resource" : "Add Resource"}</button>{editingId ? <button type="button" onClick={resetForm} className="rounded-xl border px-4 py-2.5 text-sm font-semibold">Cancel</button> : null}</div></form></section></div>;
+}
