@@ -15,8 +15,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # folder stracture
 LearnOS.zip
-tree.txt
-src-tree.txt
+
 # Runtime data
 pids
 *.pid
