@@ -17,6 +17,14 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required."),
 });
 
+const geminiEnvSchema = z.object({
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required."),
+});
+
+const mongoEnvSchema = z.object({
+  MONGODB_URI: z.string().min(1, "MONGODB_URI is required."),
+});
+
 function parseEnvironment(schema, values) {
   const result = schema.safeParse(values);
   if (result.success) return result.data;
@@ -25,3 +33,5 @@ function parseEnvironment(schema, values) {
 
 export function getServerEnv() { return parseEnvironment(serverEnvSchema, process.env); }
 export function getPublicEnv() { return parseEnvironment(publicEnvSchema, process.env); }
+export function getGeminiEnv() { return parseEnvironment(geminiEnvSchema, process.env); }
+export function getMongoEnv() { return parseEnvironment(mongoEnvSchema, process.env); }
