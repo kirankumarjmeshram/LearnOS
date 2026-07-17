@@ -4,7 +4,7 @@ import {
   BookOpen,
   ExternalLink,
   FileText,
-  Github,
+  GitBranch,
   Image,
   Link2,
   Pencil,
@@ -37,7 +37,7 @@ const iconByType = {
   pdf: FileText,
   image: Image,
   drive: Upload,
-  github: Github,
+  github: GitBranch,
   other: Link2,
 };
 

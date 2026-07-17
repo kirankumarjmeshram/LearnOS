@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, CheckSquare, Clock3, FolderKanban, ListChecks } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckSquare,
+  Clock3,
+  ListChecks,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { CourseSidebar } from "./course-sidebar";
@@ -12,14 +18,67 @@ import { LessonResources } from "./lesson-resources";
 import { LessonNotes } from "./lesson-notes";
 import { LessonActions } from "./lesson-actions";
 
+// ─── Tab definitions ─────────────────────────────────────────────────────────
+
 const TABS = [
-  { id: "overview-section", label: "Overview" },
-  { id: "learn-section", label: "Learn" },
-  { id: "practice-section", label: "Practice" },
+  { id: "overview-section",  label: "Overview" },
+  { id: "learn-section",     label: "Learn" },
+  { id: "practice-section",  label: "Practice" },
   { id: "resources-section", label: "Resources" },
-  { id: "project-section", label: "Project" },
-  { id: "notes-section", label: "Notes" },
+  { id: "project-section",   label: "Project" },
+  { id: "notes-section",     label: "Notes" },
 ];
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+/** Sticky section-navigation tab bar with scroll-spy awareness. */
+const TabBar = memo(function TabBar({ activeTab, onTabClick, scrollProgress }) {
+  return (
+    <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-[var(--background)]/95 px-4 py-2 backdrop-blur-sm sm:px-6">
+      <nav
+        className="flex gap-0.5 overflow-x-auto"
+        aria-label="Lesson sections"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {TABS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onTabClick(id)}
+            className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ring)] ${
+              activeTab === id
+                ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      <span className="hidden shrink-0 text-[10px] font-medium tabular-nums text-[var(--muted-foreground)] sm:block">
+        {scrollProgress}%
+      </span>
+    </div>
+  );
+});
+
+/** Lesson metadata chips (duration, status). */
+const LessonMeta = memo(function LessonMeta({ estimatedDuration, status }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <span className="inline-flex items-center gap-1.5 rounded-lg border bg-[var(--card)] px-2.5 py-1 text-xs font-medium">
+        <Clock3 className="size-3 text-[var(--primary)]" />
+        {estimatedDuration}
+      </span>
+      <span className="inline-flex items-center gap-1.5 rounded-lg border bg-[var(--card)] px-2.5 py-1 text-xs font-medium">
+        <CheckSquare className="size-3 text-[var(--primary)]" />
+        {status === "completed" ? "Completed" : "In Progress"}
+      </span>
+    </div>
+  );
+});
+
+// ─── Main component ──────────────────────────────────────────────────────────
 
 export function LessonView({
   lesson,
@@ -35,273 +94,252 @@ export function LessonView({
   aiContent,
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview-section");
+  const [activeTab, setActiveTab]     = useState("overview-section");
   const [scrollProgress, setScrollProgress] = useState(0);
-  const scrollContainerRef = useRef(null);
+  const scrollRef = useRef(null);
 
-  // Keyboard Shortcuts: Left/Right arrows for lesson navigation
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Don't navigate if user is typing in an input, textarea or contenteditable element
-      const activeElement = document.activeElement;
-      const isTyping =
-        activeElement &&
-        (activeElement.tagName === "INPUT" ||
-          activeElement.tagName === "TEXTAREA" ||
-          activeElement.isContentEditable);
-      
-      if (isTyping) return;
+    const onKeyDown = (e) => {
+      const el = document.activeElement;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable)
+      )
+        return;
 
-      if (e.key === "ArrowLeft" && previousLesson?._id) {
+      if (e.key === "ArrowLeft" && previousLesson?._id)
         router.push(`/lesson/${previousLesson._id}`);
-      } else if (e.key === "ArrowRight" && nextLesson?._id) {
+      else if (e.key === "ArrowRight" && nextLesson?._id)
         router.push(`/lesson/${nextLesson._id}`);
-      }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [previousLesson, nextLesson, router]);
 
-  // Scroll Spy & Reading Progress Indicator
+  // ── Scroll spy + reading progress ─────────────────────────────────────────
   useEffect(() => {
-    const container = scrollContainerRef.current;
+    const container = scrollRef.current;
     if (!container) return;
 
-    // Track scroll progress percentage
-    const handleScroll = () => {
+    const onScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const totalScrollable = scrollHeight - clientHeight;
-      const percentage = totalScrollable > 0 ? Math.round((scrollTop / totalScrollable) * 100) : 0;
-      setScrollProgress(percentage);
+      const scrollable = scrollHeight - clientHeight;
+      setScrollProgress(
+        scrollable > 0 ? Math.round((scrollTop / scrollable) * 100) : 0,
+      );
     };
+    container.addEventListener("scroll", onScroll, { passive: true });
 
-    container.addEventListener("scroll", handleScroll);
-
-    // Intersection Observer for scroll spy
-    const observerOptions = {
-      root: container,
-      rootMargin: "-20% 0px -60% 0px", // triggers when section is in upper-middle of viewport
-      threshold: 0,
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveTab(entry.target.id);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActiveTab(entry.target.id);
         }
-      });
-    }, observerOptions);
+      },
+      { root: container, rootMargin: "-15% 0px -65% 0px", threshold: 0 },
+    );
 
-    TABS.forEach((tab) => {
-      const element = document.getElementById(tab.id);
-      if (element) observer.observe(element);
+    TABS.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
     });
 
     return () => {
-      container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener("scroll", onScroll);
       observer.disconnect();
     };
   }, []);
 
-  const handleTabClick = (tabId) => {
-    const element = document.getElementById(tabId);
-    if (element && scrollContainerRef.current) {
-      // Smooth scroll container to section
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+  // ── Smooth anchor scroll on tab click ─────────────────────────────────────
+  const handleTabClick = useCallback((tabId) => {
+    const el = document.getElementById(tabId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveTab(tabId);
     }
-  };
+  }, []);
 
-  // Find info for the right progress panel
-  const currentPhase = phases.find((p) => p._id === lesson.phaseId) || phases[0];
+  // ── Derived state for progress panel ──────────────────────────────────────
+  const currentPhase = phases.find((p) => p._id === lesson.phaseId) ?? phases[0];
   const phaseLessons = lessons.filter((l) => l.phaseId === lesson.phaseId);
-  const completedPhaseLessons = phaseLessons.filter((l) => l.status === "completed").length;
+  const completedPhaseLessons = phaseLessons.filter(
+    (l) => l.status === "completed",
+  ).length;
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden relative">
-      
-      {/* ── Reading Progress Bar ── */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--muted)] z-30">
+    // Full-height three-column flex layout within the DashboardLayout content area
+    <div className="flex h-full min-w-0 flex-1 overflow-hidden">
+
+      {/* ── Reading progress bar (top of scroll container) ── */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-30 h-0.5 bg-[var(--muted)]"
+        aria-hidden
+      >
         <div
-          className="h-full bg-[var(--primary)] transition-all duration-150"
+          className="h-full bg-[var(--primary)] transition-[width] duration-150 ease-out"
           style={{ width: `${scrollProgress}%` }}
-          role="progressbar"
-          aria-valuenow={scrollProgress}
-          aria-valuemin="0"
-          aria-valuemax="100"
         />
       </div>
 
-      {/* ── Collapsible Left Sidebar ── */}
+      {/* ── Left: Course Sidebar ── */}
       <CourseSidebar
-        roadmapGoal={roadmap?.goal || ""}
+        roadmapGoal={roadmap?.goal ?? ""}
         phases={phases}
         lessons={lessons}
         currentLessonId={lesson._id}
       />
 
-      {/* ── Center Content Area ── */}
+      {/* ── Center: Scrollable lesson content ── */}
       <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto pt-1 scroll-smooth"
+        ref={scrollRef}
+        className="flex min-w-0 flex-1 flex-col overflow-y-auto"
       >
-        {/* Sticky Tab bar */}
-        <div className="sticky top-0 z-20 bg-[var(--background)]/90 backdrop-blur border-b px-5 lg:px-8 py-2.5 flex items-center justify-between">
-          <nav className="flex gap-1.5 overflow-x-auto no-scrollbar" aria-label="Lesson sections">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleTabClick(tab.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
-                  activeTab === tab.id
-                    ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+        <TabBar
+          activeTab={activeTab}
+          onTabClick={handleTabClick}
+          scrollProgress={scrollProgress}
+        />
 
-          <span className="text-[10px] font-bold text-[var(--muted-foreground)] hidden sm:inline-block">
-            {scrollProgress}% Read
-          </span>
-        </div>
+        {/* Lesson body — constrained reading width, generous but not overwhelming */}
+        <div className="mx-auto w-full max-w-3xl px-5 pb-16 pt-8 sm:px-8">
 
-        {/* Content body */}
-        <div className="p-5 lg:p-8 space-y-12 max-w-4xl">
-          
-          {/* SECTION 1: Overview */}
-          <div id="overview-section" className="scroll-mt-16 space-y-6">
+          {/* ── SECTION 1: Overview ── */}
+          <section id="overview-section" className="scroll-mt-14 space-y-6">
             <Link
               href={`/roadmap?id=${lesson.roadmapId}`}
-              className="inline-flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
             >
-              <ArrowLeft className="size-3.5" />
+              <ArrowLeft className="size-3" />
               Back to roadmap
             </Link>
 
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
-                Lesson {lesson.order} · Week {lesson.week}
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">
+                Lesson {lesson.order} &middot; Week {lesson.week}
               </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="text-2xl font-bold leading-snug tracking-tight sm:text-3xl">
                 {lesson.title}
               </h1>
-              <p className="mt-3 text-base leading-7 text-[var(--muted-foreground)]">
+              <p className="text-base leading-7 text-[var(--muted-foreground)]">
                 {lesson.description}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="inline-flex items-center gap-1.5 rounded-xl border bg-[var(--card)] px-3 py-1.5 font-medium">
-                <Clock3 className="size-3.5 text-[var(--primary)]" />
-                {lesson.estimatedDuration}
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-xl border bg-[var(--card)] px-3 py-1.5 font-medium">
-                <CheckSquare className="size-3.5 text-[var(--primary)]" />
-                {lesson.status === "completed" ? "Completed" : "In Progress"}
-              </span>
+            <LessonMeta
+              estimatedDuration={lesson.estimatedDuration}
+              status={lesson.status}
+            />
+
+            {/* Objectives + Topics grid */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {lesson.learningObjectives?.length > 0 && (
+                <div className="rounded-xl border bg-[var(--card)] p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <ListChecks className="size-4 text-[var(--primary)]" />
+                    <h3 className="text-sm font-semibold">Objectives</h3>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {lesson.learningObjectives.map((obj, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-xs leading-5 text-[var(--muted-foreground)]"
+                      >
+                        <span className="mt-1.5 size-1 shrink-0 rounded-full bg-[var(--primary)]" />
+                        {obj}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {lesson.topics?.length > 0 && (
+                <div className="rounded-xl border bg-[var(--card)] p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <BookOpen className="size-4 text-[var(--primary)]" />
+                    <h3 className="text-sm font-semibold">Topics</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {lesson.topics.map((topic, i) => (
+                      <span
+                        key={i}
+                        className="rounded-full bg-[var(--secondary)] px-2.5 py-1 text-xs font-medium text-[var(--secondary-foreground)]"
+                      >
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          </section>
 
-            {/* Objectives + Topics */}
-            <div className="grid gap-4 sm:grid-cols-2 pt-4">
-              <div className="rounded-xl border bg-[var(--card)] p-5">
-                <div className="flex items-center gap-2">
-                  <ListChecks className="size-4 text-[var(--primary)]" />
-                  <h4 className="font-semibold text-sm">Learning Objectives</h4>
-                </div>
-                <ul className="mt-3 space-y-2 text-xs text-[var(--muted-foreground)]">
-                  {lesson.learningObjectives?.map((obj, i) => (
-                    <li key={i} className="flex gap-2 items-start">
-                      <span className="mt-1.5 size-1 shrink-0 rounded-full bg-[var(--primary)]" />
-                      <span>{obj}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          <hr className="my-10" />
 
-              <div className="rounded-xl border bg-[var(--card)] p-5">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="size-4 text-[var(--primary)]" />
-                  <h4 className="font-semibold text-sm">Topics</h4>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {lesson.topics?.map((topic, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full bg-[var(--secondary)] px-2.5 py-1 text-xs font-semibold text-[var(--secondary-foreground)]"
-                    >
-                      {topic}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <hr />
-
-          {/* SECTION 2: Learn (AI Lesson Content) */}
-          <div id="learn-section" className="scroll-mt-16">
+          {/* ── SECTION 2: Learn ── */}
+          <section id="learn-section" className="scroll-mt-14">
             {aiContent ? (
               <LessonContent content={aiContent} />
             ) : (
-              <div className="rounded-xl border border-dashed p-6 text-center">
-                <p className="text-xs text-[var(--muted-foreground)]">
-                  No detailed concept summary available. Use the resources tab to learn.
+              <div className="rounded-xl border border-dashed p-8 text-center">
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  Lesson content is being prepared. Check back shortly or explore
+                  the resources tab.
                 </p>
               </div>
             )}
-          </div>
+          </section>
 
-          <hr />
+          <hr className="my-10" />
 
-          {/* SECTION 3: Practice */}
-          <div id="practice-section" className="scroll-mt-16 space-y-4">
-            <h3 className="text-lg font-bold">Hands-on Practice</h3>
+          {/* ── SECTION 3: Practice ── */}
+          <section id="practice-section" className="scroll-mt-14 space-y-4">
+            <h2 className="text-lg font-bold">Hands-on Practice</h2>
             <div className="rounded-xl border bg-[var(--card)] p-5">
-              <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                {lesson.practice || "Apply what you have learned by implementing a small coding exercise or task."}
+              <p className="text-sm leading-7 text-[var(--muted-foreground)]">
+                {lesson.practice ||
+                  "Apply what you've learned by implementing a small coding exercise or task."}
               </p>
             </div>
-          </div>
+          </section>
 
-          <hr />
+          <hr className="my-10" />
 
-          {/* SECTION 4: Resources */}
-          <div id="resources-section" className="scroll-mt-16">
+          {/* ── SECTION 4: Resources ── */}
+          <section id="resources-section" className="scroll-mt-14">
             <LessonResources
               lessonId={lesson._id}
               aiResources={aiResources}
               initialUserResources={initialUserResources}
             />
-          </div>
+          </section>
 
-          <hr />
+          <hr className="my-10" />
 
-          {/* SECTION 5: Project */}
-          <div id="project-section" className="scroll-mt-16 space-y-4">
-            <h3 className="text-lg font-bold">Mini Project</h3>
+          {/* ── SECTION 5: Project ── */}
+          <section id="project-section" className="scroll-mt-14 space-y-4">
+            <h2 className="text-lg font-bold">Mini Project</h2>
             <div className="rounded-xl border bg-[var(--card)] p-5">
-              <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                {lesson.project || "No mini project included for this lesson."}
+              <p className="text-sm leading-7 text-[var(--muted-foreground)]">
+                {lesson.project || "No mini project is included for this lesson."}
               </p>
             </div>
-          </div>
+          </section>
 
-          <hr />
+          <hr className="my-10" />
 
-          {/* SECTION 6: Notes */}
-          <div id="notes-section" className="scroll-mt-16 space-y-4">
-            <h3 className="text-lg font-bold">Lesson Notes</h3>
+          {/* ── SECTION 6: Notes ── */}
+          <section id="notes-section" className="scroll-mt-14 space-y-4">
+            <h2 className="text-lg font-bold">My Notes</h2>
             <LessonNotes lessonId={lesson._id} initialContent={noteContent} />
-          </div>
+          </section>
 
-          {/* Previous / Next Actions */}
-          <div className="pt-6">
+          {/* ── Lesson navigation (Prev / Mark Complete / Next) ── */}
+          <div className="mt-10">
             <LessonActions
               lessonId={lesson._id}
               previousLessonId={previousLesson?._id}
@@ -309,11 +347,10 @@ export function LessonView({
               isCompleted={lesson.status === "completed"}
             />
           </div>
-
         </div>
       </div>
 
-      {/* ── Collapsible Right Progress Panel ── */}
+      {/* ── Right: Progress Panel ── */}
       <RightProgressPanel
         currentPhaseName={currentPhase?.title}
         completedLessons={completedPhaseLessons}
@@ -321,7 +358,6 @@ export function LessonView({
         nextLessonId={nextLesson?._id}
         lessonId={lesson._id}
       />
-
     </div>
   );
 }

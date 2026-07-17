@@ -20,13 +20,13 @@ export function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[var(--background)]">
       <DashboardNavbar onMenuClick={handleMenuClick} />
-      <div className="flex">
+      {/* Content area fills remaining height; overflow-hidden lets children manage their own scroll */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         {children}
       </div>
     </div>
   );
 }
-

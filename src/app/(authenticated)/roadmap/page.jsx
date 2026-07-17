@@ -27,13 +27,17 @@ export default async function RoadmapPage({ searchParams }) {
     );
   }
 
+  // Serialize: .lean() returns plain objects but ObjectIds/Dates still need
+  // JSON round-trip to be plain strings before crossing the RSC→Client boundary.
+  const { roadmap, lessons, progress } = JSON.parse(JSON.stringify(learning));
+
   return (
     <PageWrapper>
       <RoadmapView
-        roadmap={learning.roadmap}
-        phases={learning.roadmap.phases}
-        lessons={learning.lessons}
-        progress={learning.progress}
+        roadmap={roadmap}
+        phases={roadmap.phases}
+        lessons={lessons}
+        progress={progress}
       />
     </PageWrapper>
   );
