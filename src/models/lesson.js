@@ -18,6 +18,7 @@ const lessonSchema = new mongoose.Schema({
   resources: [resourceSchema],
   practice: { type: String, required: true, trim: true },
   project: { type: String, default: "", trim: true },
+  aiContent: { type: mongoose.Schema.Types.Mixed, default: null },
   order: { type: Number, required: true, min: 1 },
   status: { type: String, enum: ["pending", "completed"], default: "pending", index: true },
   completedAt: { type: Date, default: null },

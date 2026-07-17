@@ -1,29 +1,281 @@
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
-import { BookOpen, Compass, FolderKanban, LineChart, Map, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Compass,
+  FolderKanban,
+  Flame,
+  Layers3,
+  Map,
+  Plus,
+  Sparkles,
+  Target,
+  Trophy,
+} from "lucide-react";
+import { format } from "date-fns";
 
 import { PageWrapper } from "@/components/layout/page-wrapper";
 import { ROUTES } from "@/constants/routes";
-import { getLearningExperience } from "@/services/learning-service";
+import { getAllRoadmapsWithProgress } from "@/services/learning-service";
 
 function ProgressBar({ value }) {
-  return <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--muted)]"><div className="h-full bg-[var(--primary)]" style={{ width: `${value}%` }} /></div>;
+  return (
+    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+      <div
+        className="h-full bg-[var(--primary)] transition-all"
+        style={{ width: `${Math.min(value, 100)}%` }}
+      />
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, sub }) {
+  return (
+    <div className="rounded-2xl border bg-[var(--card)] p-5">
+      <Icon className="size-5 text-[var(--primary)]" />
+      <p className="mt-3 text-2xl font-bold">{value}</p>
+      <p className="mt-0.5 text-sm font-medium">{label}</p>
+      {sub && <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{sub}</p>}
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
   const user = await currentUser();
-  let learning = null;
-  try { if (user?.id) learning = await getLearningExperience(user.id); } catch (error) { console.error("Unable to load learning dashboard:", error); }
-
   const name = user?.firstName || user?.username || user?.fullName || "Learner";
-  const email = user?.primaryEmailAddress?.emailAddress || "No email available";
-  const roadmap = learning?.roadmap;
-  const progress = learning?.progress;
-  const lessons = learning?.lessons || [];
-  const currentLesson = lessons.find((lesson) => lesson._id.toString() === progress?.currentLessonId?.toString()) || lessons.find((lesson) => lesson.status !== "completed");
-  const nextLesson = currentLesson ? lessons.find((lesson) => lesson.order > currentLesson.order && lesson.status !== "completed") : null;
-  const currentPhase = roadmap?.phases?.find((phase) => phase._id.toString() === currentLesson?.phaseId?.toString()) || roadmap?.phases?.[0];
-  const actions = [{ title: "Open Roadmap", description: "Browse phases, weeks, and lessons.", href: ROUTES.ROADMAP, icon: Map }, { title: "Continue Learning", description: "Open your current lesson.", href: currentLesson ? `/lesson/${currentLesson._id.toString()}` : ROUTES.ROADMAP, icon: Compass }, { title: "My Courses", description: "Browse your learning library.", href: ROUTES.COURSES, icon: BookOpen }, { title: "Progress", description: "Track your learning progress.", href: ROUTES.PROFILE, icon: LineChart }, { title: "Resources", description: "Manage saved learning resources.", href: ROUTES.RESOURCES, icon: FolderKanban }];
 
-  return <PageWrapper><section><p className="text-sm font-semibold text-[var(--primary)]">Your Workspace</p><h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Welcome back, {name}!</h1><p className="mt-3 max-w-2xl leading-7 text-[var(--muted-foreground)]">{roadmap ? "Your learning roadmap is ready to guide your next steps." : "Build your Learning OS to create a personalized roadmap from your goals."}</p><div className="mt-8 rounded-2xl border bg-[var(--card)] p-5 shadow-sm"><p className="text-sm text-[var(--muted-foreground)]">Signed in as</p><p className="mt-1 font-medium">{email}</p></div></section>{roadmap && progress ? <section className="mt-10 grid gap-4 lg:grid-cols-2"><Link href={ROUTES.ROADMAP} className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm hover:border-[var(--primary)]"><p className="text-sm font-semibold text-[var(--primary)]">Current roadmap</p><h2 className="mt-2 text-2xl font-semibold">{roadmap.goal}</h2><p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">{roadmap.summary}</p><div className="mt-6 grid grid-cols-2 gap-4 text-sm"><div><p className="text-[var(--muted-foreground)]">Current phase</p><p className="mt-1 font-semibold">{currentPhase?.title || "Getting started"}</p></div><div><p className="text-[var(--muted-foreground)]">Current week</p><p className="mt-1 font-semibold">Week {currentLesson?.week || 1}</p></div><div><p className="text-[var(--muted-foreground)]">Completed lessons</p><p className="mt-1 font-semibold">{progress.completedLessons}</p></div><div><p className="text-[var(--muted-foreground)]">Remaining lessons</p><p className="mt-1 font-semibold">{Math.max(progress.totalLessons - progress.completedLessons, 0)}</p></div></div><ProgressBar value={progress.progressPercentage} /><p className="mt-2 text-sm text-[var(--muted-foreground)]">Overall progress: {progress.progressPercentage}% · Study streak: {progress.streak} days</p></Link><div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm"><p className="text-sm font-semibold text-[var(--primary)]">Today&apos;s task</p>{currentLesson ? <><Link href={`/lesson/${currentLesson._id.toString()}`} className="mt-2 block text-xl font-semibold hover:text-[var(--primary)]">{currentLesson.title}</Link><p className="mt-2 text-sm text-[var(--muted-foreground)]">{currentLesson.estimatedDuration} · Week {currentLesson.week}</p><div className="mt-6 border-t pt-4"><p className="text-sm text-[var(--muted-foreground)]">Next task</p>{nextLesson ? <Link href={`/lesson/${nextLesson._id.toString()}`} className="mt-1 block font-medium hover:text-[var(--primary)]">{nextLesson.title}</Link> : <p className="mt-1 font-medium">Complete your current lesson to continue.</p>}</div></> : <p className="mt-3 text-[var(--muted-foreground)]">All lessons are complete. Great work!</p>}</div></section> : <section className="mt-10 rounded-2xl border bg-[var(--card)] p-7 shadow-sm"><Sparkles className="size-6 text-[var(--primary)]" /><h2 className="mt-5 text-2xl font-semibold">Build your Learning OS</h2><p className="mt-2 max-w-xl leading-7 text-[var(--muted-foreground)]">Tell LearnOS about your career goal, availability, and learning preferences to generate your first personalized roadmap.</p><Link href={ROUTES.ONBOARDING} className="mt-6 inline-flex rounded-xl bg-[var(--primary)] px-5 py-3 font-semibold text-[var(--primary-foreground)]">Build My Learning OS</Link></section>}<section className="mt-10"><h2 className="text-xl font-semibold">Quick Actions</h2><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{actions.map(({ title, description, href, icon: Icon }) => <Link key={title} href={href} className="rounded-2xl border bg-[var(--card)] p-5 transition-all hover:-translate-y-1 hover:border-[var(--primary)] hover:shadow-lg"><Icon className="size-5 text-[var(--primary)]" /><h3 className="mt-5 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{description}</p></Link>)}</div></section></PageWrapper>;
+  let allRoadmaps = [];
+  try {
+    if (user?.id) allRoadmaps = await getAllRoadmapsWithProgress(user.id);
+  } catch (error) {
+    console.error("Unable to load dashboard:", error);
+  }
+
+  // Serialize MongoDB docs
+  const roadmaps = JSON.parse(JSON.stringify(allRoadmaps));
+
+  const activeRoadmaps = roadmaps.filter((r) => r.status === "active");
+  const completedRoadmaps = roadmaps.filter((r) => r.status === "completed");
+
+  // Find the "continue learning" roadmap — most recently studied active one
+  const continueRoadmap =
+    activeRoadmaps.find((r) => r.lastStudiedAt) || activeRoadmaps[0] || null;
+
+  const continueProgress = continueRoadmap?.progress;
+  const continueCurrentLessonId = continueProgress?.currentLessonId;
+
+  // Aggregate stats
+  const totalCompleted = roadmaps.reduce(
+    (acc, r) => acc + (r.progress?.completedLessons ?? 0),
+    0,
+  );
+  const totalLessons = roadmaps.reduce(
+    (acc, r) => acc + (r.progress?.totalLessons ?? 0),
+    0,
+  );
+  const bestStreak = Math.max(0, ...roadmaps.map((r) => r.progress?.streak ?? 0));
+
+  const hasRoadmap = roadmaps.length > 0;
+
+  return (
+    <PageWrapper>
+      {/* ── Greeting ── */}
+      <section>
+        <p className="text-sm font-semibold text-[var(--primary)]">Your Workspace</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          Welcome back, {name}!
+        </h1>
+        <p className="mt-3 max-w-2xl leading-7 text-[var(--muted-foreground)]">
+          {hasRoadmap
+            ? "Pick up where you left off or explore your learning roadmaps."
+            : "Build your Learning OS to create a personalized roadmap from your goals."}
+        </p>
+      </section>
+
+      {/* ── No roadmap CTA ── */}
+      {!hasRoadmap && (
+        <section className="mt-10 rounded-2xl border bg-[var(--card)] p-9 shadow-sm">
+          <Sparkles className="size-6 text-[var(--primary)]" />
+          <h2 className="mt-5 text-2xl font-semibold">Build your Learning OS</h2>
+          <p className="mt-2 max-w-xl leading-7 text-[var(--muted-foreground)]">
+            Tell LearnOS about your career goal, availability, and learning preferences to generate
+            your first personalized roadmap.
+          </p>
+          <Link
+            href={ROUTES.ONBOARDING}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 font-semibold text-[var(--primary-foreground)]"
+          >
+            <Plus className="size-4" />
+            Build My Learning OS
+          </Link>
+        </section>
+      )}
+
+      {hasRoadmap && (
+        <>
+          {/* ── Stats ── */}
+          <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              icon={BookOpen}
+              label="Lessons completed"
+              value={totalCompleted}
+              sub={`of ${totalLessons} total`}
+            />
+            <StatCard
+              icon={Layers3}
+              label="Active roadmaps"
+              value={activeRoadmaps.length}
+            />
+            <StatCard
+              icon={Trophy}
+              label="Completed roadmaps"
+              value={completedRoadmaps.length}
+            />
+            <StatCard
+              icon={Flame}
+              label="Best streak"
+              value={`${bestStreak} days`}
+            />
+          </section>
+
+          {/* ── Continue Learning ── */}
+          {continueRoadmap && (
+            <section className="mt-10">
+              <h2 className="text-xl font-semibold">Continue Learning</h2>
+              <div className="mt-4 rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[var(--primary)]">
+                      {continueRoadmap.goal}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                      {continueRoadmap.difficulty} · {continueRoadmap.duration}
+                    </p>
+                    <div className="mt-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[var(--muted-foreground)]">
+                          {continueProgress?.completedLessons ?? 0} /{" "}
+                          {continueProgress?.totalLessons ?? 0} lessons
+                        </span>
+                        <span className="font-semibold">
+                          {continueProgress?.progressPercentage ?? 0}%
+                        </span>
+                      </div>
+                      <ProgressBar value={continueProgress?.progressPercentage ?? 0} />
+                    </div>
+                    {continueRoadmap.lastStudiedAt && (
+                      <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+                        Last studied:{" "}
+                        {format(new Date(continueRoadmap.lastStudiedAt), "MMM d, yyyy")}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-2">
+                    {continueCurrentLessonId && (
+                      <Link
+                        href={`/lesson/${continueCurrentLessonId}`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90"
+                      >
+                        <Compass className="size-4" />
+                        Continue lesson
+                        <ArrowRight className="size-4" />
+                      </Link>
+                    )}
+                    <Link
+                      href={`/roadmap?id=${continueRoadmap._id}`}
+                      className="inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-[var(--muted)]"
+                    >
+                      <Map className="size-4" />
+                      View roadmap
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ── Active roadmaps ── */}
+          {activeRoadmaps.length > 1 && (
+            <section className="mt-10">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Active Roadmaps</h2>
+                <Link
+                  href={ROUTES.COURSES}
+                  className="text-sm font-medium text-[var(--primary)] hover:underline"
+                >
+                  View all
+                </Link>
+              </div>
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {activeRoadmaps.slice(0, 4).map((r) => (
+                  <Link
+                    key={r._id}
+                    href={
+                      r.progress?.currentLessonId
+                        ? `/lesson/${r.progress.currentLessonId}`
+                        : `/roadmap?id=${r._id}`
+                    }
+                    className="rounded-2xl border bg-[var(--card)] p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md"
+                  >
+                    <p className="truncate font-semibold">{r.goal}</p>
+                    <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                      {r.progress?.completedLessons ?? 0} / {r.progress?.totalLessons ?? 0} lessons
+                    </p>
+                    <ProgressBar value={r.progress?.progressPercentage ?? 0} />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Completed ── */}
+          {completedRoadmaps.length > 0 && (
+            <section className="mt-10">
+              <h2 className="text-xl font-semibold">Completed</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {completedRoadmaps.map((r) => (
+                  <Link
+                    key={r._id}
+                    href={`/roadmap?id=${r._id}`}
+                    className="flex items-start gap-3 rounded-2xl border bg-[var(--card)] p-5 hover:border-[var(--primary)]"
+                  >
+                    <Target className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{r.goal}</p>
+                      <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                        {r.progress?.totalLessons ?? 0} lessons · 100% complete
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      {/* ── Quick Actions ── */}
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold">Quick Actions</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[
+            { title: "My Learning", description: "Browse all your roadmaps.", href: ROUTES.COURSES, icon: BookOpen },
+            { title: "My Notes", description: "Review your lesson notes.", href: ROUTES.RESOURCES, icon: FolderKanban },
+            { title: "New Roadmap", description: "Generate a new learning journey.", href: ROUTES.ONBOARDING, icon: Plus },
+          ].map(({ title, description, href, icon: Icon }) => (
+            <Link
+              key={title}
+              href={href}
+              className="rounded-2xl border bg-[var(--card)] p-5 transition-all hover:-translate-y-1 hover:border-[var(--primary)] hover:shadow-lg"
+            >
+              <Icon className="size-5 text-[var(--primary)]" />
+              <h3 className="mt-5 font-semibold">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </PageWrapper>
+  );
 }

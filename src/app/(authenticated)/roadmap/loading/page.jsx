@@ -20,6 +20,13 @@ export default function RoadmapLoadingPage() {
     const controller = new AbortController();
     const interval = window.setInterval(() => setActiveStep((current) => Math.min(current + 1, messages.length - 1)), 900);
 
+    // Guard: onboarding data is lost on hard refresh (Redux is not persisted)
+    if (!onboarding?.goal) {
+      window.clearInterval(interval);
+      router.replace("/onboarding");
+      return;
+    }
+
     async function requestRoadmap() {
       try {
         const response = await fetch("/api/roadmap/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ onboarding }), signal: controller.signal });
@@ -36,6 +43,7 @@ export default function RoadmapLoadingPage() {
     requestRoadmap();
     return () => { isMounted = false; controller.abort(); window.clearInterval(interval); };
   }, [attempt, onboarding, router]);
+
 
   const retry = () => { setError(""); setActiveStep(0); setAttempt((current) => current + 1); };
 

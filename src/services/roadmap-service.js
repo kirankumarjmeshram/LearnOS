@@ -29,3 +29,15 @@ export async function getLatestRoadmap(clerkId) {
   await connectToDatabase();
   return Roadmap.findOne({ clerkId }).sort({ createdAt: -1 }).populate(["phases", { path: "dailyPlan", options: { sort: { day: 1 } } }]).lean();
 }
+
+export async function updateRoadmapStatus(clerkId, roadmapId, status) {
+  await connectToDatabase();
+  const roadmap = await Roadmap.findOneAndUpdate(
+    { _id: roadmapId, clerkId },
+    { $set: { status } },
+    { new: true },
+  ).lean();
+  if (!roadmap) throw new Error("Roadmap not found or access denied.");
+  return roadmap;
+}
+

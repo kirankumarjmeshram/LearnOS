@@ -42,6 +42,18 @@ const roadmapSchema = new mongoose.Schema(
       min: 1,
     },
 
+    status: {
+      type: String,
+      enum: ["active", "archived", "completed"],
+      default: "active",
+      index: true,
+    },
+
+    lastStudiedAt: {
+      type: Date,
+      default: null,
+    },
+
     onboarding: {
       type: mongoose.Schema.Types.Mixed,
       required: true,
@@ -66,10 +78,8 @@ const roadmapSchema = new mongoose.Schema(
   }
 );
 
-roadmapSchema.index({
-  clerkId: 1,
-  createdAt: -1,
-});
+roadmapSchema.index({ clerkId: 1, createdAt: -1 });
+roadmapSchema.index({ clerkId: 1, status: 1, lastStudiedAt: -1 });
 
 export const Roadmap =
   mongoose.models.Roadmap ||

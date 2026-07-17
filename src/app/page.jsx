@@ -1,5 +1,10 @@
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+
 import { LandingPage } from "@/features/landing/components/landing-page";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const user = await currentUser();
+  if (user) redirect("/dashboard");
   return <LandingPage />;
 }
