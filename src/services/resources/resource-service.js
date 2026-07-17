@@ -52,11 +52,29 @@ async function ensureAiResources(clerkId, lesson) {
   return LessonResource.find({ lessonId: lesson._id, source: "ai" }).sort({ createdAt: 1 }).lean();
 }
 
+import { GlobalResource } from "@/models/global-resource";
+
 export async function getLessonResources(clerkId, lessonId) {
   await connectToDatabase();
   const lesson = await getOwnedLesson(clerkId, lessonId);
-  const [aiResources, userResources] = await Promise.all([ensureAiResources(clerkId, lesson), LessonResource.find({ lessonId: lesson._id, source: "user", clerkId }).sort({ createdAt: -1 }).lean()]);
-  return { aiResources, userResources };
+  const [aiResources, userResources, allGlobal] = await Promise.all([
+    ensureAiResources(clerkId, lesson), 
+    LessonResource.find({ lessonId: lesson._id, source: "user", clerkId }).sort({ createdAt: -1 }).lean(),
+    GlobalResource.find({ 
+      clerkId, 
+      $or: [{ visibility: "global" }, { roadmapId: lesson.roadmapId }]
+    }).lean()
+  ]);
+
+  // Match global resources to lesson topics/title
+  const keywords = [lesson.title, ...(lesson.topics || [])].map(k => k.toLowerCase());
+  const globalResources = allGlobal.filter(res => {
+    const tech = (res.technology || "").toLowerCase();
+    const tags = (res.tags || []).map(t => t.toLowerCase());
+    return keywords.some(kw => kw.includes(tech) || tech.includes(kw) || tags.some(t => kw.includes(t) || t.includes(kw)));
+  });
+
+  return { aiResources, userResources, globalResources };
 }
 
 export async function addUserResource(clerkId, lessonId, resource) {

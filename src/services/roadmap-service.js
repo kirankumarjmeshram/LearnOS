@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { DailyPlan } from "@/models/daily-plan";
 import { Phase } from "@/models/phase";
 import { Roadmap } from "@/models/roadmap";
+import { GlobalResource } from "@/models/global-resource";
 
 export async function saveRoadmap({ clerkId, onboarding, roadmap }) {
   await connectToDatabase();
@@ -22,6 +23,17 @@ export async function saveRoadmap({ clerkId, onboarding, roadmap }) {
   savedRoadmap.phases = phases.map((phase) => phase._id);
   savedRoadmap.dailyPlan = dailyPlan.map((item) => item._id);
   await savedRoadmap.save();
+
+  // Save Global Resources from onboarding
+  if (onboarding.resources && onboarding.resources.length > 0) {
+    const resourceDocs = onboarding.resources.map(r => ({
+      ...r,
+      clerkId,
+      roadmapId: r.visibility === "roadmap" ? savedRoadmap._id : null,
+    }));
+    await GlobalResource.insertMany(resourceDocs);
+  }
+
   return savedRoadmap.populate(["phases", { path: "dailyPlan", options: { sort: { day: 1 } } }]);
 }
 

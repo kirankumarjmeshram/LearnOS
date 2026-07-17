@@ -40,6 +40,8 @@ export default async function LessonPage({ params }) {
     resourcesResult.status === "fulfilled" ? resourcesResult.value.aiResources : [];
   const initialUserResources =
     resourcesResult.status === "fulfilled" ? resourcesResult.value.userResources : [];
+  const globalResources =
+    resourcesResult.status === "fulfilled" ? resourcesResult.value.globalResources : [];
 
   // Note
   const noteContent =
@@ -61,6 +63,7 @@ export default async function LessonPage({ params }) {
       progress: experience?.progress || null,
       aiResources,
       initialUserResources,
+      globalResources,
       noteContent,
       aiContent,
     }),
@@ -77,6 +80,7 @@ export default async function LessonPage({ params }) {
       progress={serialized.progress}
       aiResources={serialized.aiResources}
       initialUserResources={serialized.initialUserResources}
+      globalResources={serialized.globalResources}
       noteContent={serialized.noteContent}
       aiContent={serialized.aiContent}
     />

@@ -1,16 +1,18 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   BookOpen,
+  Check,
   CheckSquare,
   Clock3,
   ListChecks,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { cn } from "@/lib/utils";
 import { CourseSidebar } from "./course-sidebar";
 import { RightProgressPanel } from "./right-progress-panel";
 import { LessonContent } from "./lesson-content";
@@ -18,60 +20,71 @@ import { LessonResources } from "./lesson-resources";
 import { LessonNotes } from "./lesson-notes";
 import { LessonActions } from "./lesson-actions";
 
-// ─── Tab definitions ─────────────────────────────────────────────────────────
-
-const TABS = [
-  { id: "overview-section",  label: "Overview" },
-  { id: "learn-section",     label: "Learn" },
-  { id: "practice-section",  label: "Practice" },
-  { id: "resources-section", label: "Resources" },
-  { id: "project-section",   label: "Project" },
-  { id: "notes-section",     label: "Notes" },
-];
-
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-/** Sticky section-navigation tab bar with scroll-spy awareness. */
-const TabBar = memo(function TabBar({ activeTab, onTabClick, scrollProgress }) {
+const GuidedStepper = memo(function GuidedStepper({ steps, activeIndex, onStepClick }) {
   return (
-    <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-[var(--background)]/95 px-4 py-2 backdrop-blur-sm sm:px-6">
-      <nav
-        className="flex gap-0.5 overflow-x-auto"
-        aria-label="Lesson sections"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onTabClick(id)}
-            className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ring)] ${
-              activeTab === id
-                ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+    <div className="sticky top-0 z-20 border-b bg-[var(--background)]/95 px-5 py-4 backdrop-blur-sm sm:px-8">
+      <nav aria-label="Progress" className="mx-auto max-w-3xl">
+        <ol role="list" className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const isCompleted = index < activeIndex;
+            const isActive = index === activeIndex;
+            const isLast = index === steps.length - 1;
+            
+            return (
+              <li key={step.id} className={cn("relative flex items-center", !isLast && "flex-1")}>
+                {/* Connector line */}
+                {!isLast && (
+                  <div className="absolute top-1/2 w-full -translate-y-1/2 left-4 px-2" aria-hidden="true">
+                    <div className={cn("h-0.5 w-full rounded-full", isCompleted ? "bg-[var(--primary)]" : "bg-[var(--muted)]")} />
+                  </div>
+                )}
+                
+                {/* Step Circle */}
+                <button
+                  type="button"
+                  onClick={() => onStepClick(index)}
+                  disabled={index > activeIndex && !isCompleted}
+                  className="relative flex flex-col items-center group bg-[var(--background)] z-10"
+                >
+                  <div className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                    isCompleted ? "bg-[var(--primary)] text-[var(--primary-foreground)]" 
+                      : isActive ? "border-2 border-[var(--primary)] bg-[var(--background)] text-[var(--primary)]"
+                      : "border-2 border-[var(--muted)] bg-[var(--background)] text-[var(--muted-foreground)] group-hover:border-[var(--muted-foreground)]"
+                  )}>
+                    {isCompleted ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <span className="text-xs font-bold">{index + 1}</span>
+                    )}
+                  </div>
+                  <span className={cn(
+                    "absolute -bottom-6 text-[10px] sm:text-xs font-semibold whitespace-nowrap",
+                    isActive ? "text-[var(--primary)]" : isCompleted ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
+                  )}>
+                    {step.label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
       </nav>
-      <span className="hidden shrink-0 text-[10px] font-medium tabular-nums text-[var(--muted-foreground)] sm:block">
-        {scrollProgress}%
-      </span>
     </div>
   );
 });
 
-/** Lesson metadata chips (duration, status). */
 const LessonMeta = memo(function LessonMeta({ estimatedDuration, status }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-lg border bg-[var(--card)] px-2.5 py-1 text-xs font-medium">
-        <Clock3 className="size-3 text-[var(--primary)]" />
+      <span className="inline-flex items-center gap-1.5 rounded-xl border bg-[var(--card)] px-3 py-1.5 text-xs font-semibold">
+        <Clock3 className="size-3.5 text-[var(--primary)]" />
         {estimatedDuration}
       </span>
-      <span className="inline-flex items-center gap-1.5 rounded-lg border bg-[var(--card)] px-2.5 py-1 text-xs font-medium">
-        <CheckSquare className="size-3 text-[var(--primary)]" />
+      <span className="inline-flex items-center gap-1.5 rounded-xl border bg-[var(--card)] px-3 py-1.5 text-xs font-semibold">
+        <CheckSquare className="size-3.5 text-[var(--primary)]" />
         {status === "completed" ? "Completed" : "In Progress"}
       </span>
     </div>
@@ -90,13 +103,28 @@ export function LessonView({
   progress,
   aiResources,
   initialUserResources,
+  globalResources,
   noteContent,
   aiContent,
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab]     = useState("overview-section");
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const scrollRef = useRef(null);
+
+  // Dynamic steps based on lesson content
+  const STEPS = useMemo(() => {
+    const s = [
+      { id: "overview", label: "Overview" },
+      { id: "learn", label: "Learn" },
+    ];
+    if (lesson.practice) s.push({ id: "practice", label: "Practice" });
+    s.push({ id: "resources", label: "Resources" });
+    if (lesson.project) s.push({ id: "project", label: "Project" });
+    s.push({ id: "notes", label: "Notes" });
+    return s;
+  }, [lesson.practice, lesson.project]);
+
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const activeStep = STEPS[activeIndex];
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
@@ -111,81 +139,40 @@ export function LessonView({
       )
         return;
 
-      if (e.key === "ArrowLeft" && previousLesson?._id)
-        router.push(`/lesson/${previousLesson._id}`);
-      else if (e.key === "ArrowRight" && nextLesson?._id)
-        router.push(`/lesson/${nextLesson._id}`);
+      if (e.key === "ArrowLeft") {
+        if (activeIndex > 0) {
+          setActiveIndex(activeIndex - 1);
+        } else if (previousLesson?._id) {
+          router.push(`/lesson/${previousLesson._id}`);
+        }
+      } else if (e.key === "ArrowRight") {
+        if (activeIndex < STEPS.length - 1) {
+          setActiveIndex(activeIndex + 1);
+        } else if (nextLesson?._id) {
+          router.push(`/lesson/${nextLesson._id}`);
+        }
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [previousLesson, nextLesson, router]);
+  }, [previousLesson, nextLesson, router, activeIndex, STEPS.length]);
 
-  // ── Scroll spy + reading progress ─────────────────────────────────────────
+  // Scroll to top when step changes
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    const onScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const scrollable = scrollHeight - clientHeight;
-      setScrollProgress(
-        scrollable > 0 ? Math.round((scrollTop / scrollable) * 100) : 0,
-      );
-    };
-    container.addEventListener("scroll", onScroll, { passive: true });
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActiveTab(entry.target.id);
-        }
-      },
-      { root: container, rootMargin: "-15% 0px -65% 0px", threshold: 0 },
-    );
-
-    TABS.forEach(({ id }) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-
-    return () => {
-      container.removeEventListener("scroll", onScroll);
-      observer.disconnect();
-    };
-  }, []);
-
-  // ── Smooth anchor scroll on tab click ─────────────────────────────────────
-  const handleTabClick = useCallback((tabId) => {
-    const el = document.getElementById(tabId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveTab(tabId);
+    const container = document.getElementById("lesson-scroll-container");
+    if (container) {
+      container.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, []);
+  }, [activeIndex]);
 
   // ── Derived state for progress panel ──────────────────────────────────────
   const currentPhase = phases.find((p) => p._id === lesson.phaseId) ?? phases[0];
   const phaseLessons = lessons.filter((l) => l.phaseId === lesson.phaseId);
-  const completedPhaseLessons = phaseLessons.filter(
-    (l) => l.status === "completed",
-  ).length;
+  const completedPhaseLessons = phaseLessons.filter((l) => l.status === "completed").length;
 
   return (
-    // Full-height three-column flex layout within the DashboardLayout content area
-    <div className="flex h-full min-w-0 flex-1 overflow-hidden">
-
-      {/* ── Reading progress bar (top of scroll container) ── */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-30 h-0.5 bg-[var(--muted)]"
-        aria-hidden
-      >
-        <div
-          className="h-full bg-[var(--primary)] transition-[width] duration-150 ease-out"
-          style={{ width: `${scrollProgress}%` }}
-        />
-      </div>
-
+    <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-[var(--background)]">
       {/* ── Left: Course Sidebar ── */}
       <CourseSidebar
         roadmapGoal={roadmap?.goal ?? ""}
@@ -196,155 +183,160 @@ export function LessonView({
 
       {/* ── Center: Scrollable lesson content ── */}
       <div
-        ref={scrollRef}
+        id="lesson-scroll-container"
         className="flex min-w-0 flex-1 flex-col overflow-y-auto"
       >
-        <TabBar
-          activeTab={activeTab}
-          onTabClick={handleTabClick}
-          scrollProgress={scrollProgress}
+        <GuidedStepper
+          steps={STEPS}
+          activeIndex={activeIndex}
+          onStepClick={(index) => setActiveIndex(index)}
         />
 
-        {/* Lesson body — constrained reading width, generous but not overwhelming */}
-        <div className="mx-auto w-full max-w-3xl px-5 pb-16 pt-8 sm:px-8">
+        {/* Lesson body — constrained reading width */}
+        <div className="mx-auto w-full max-w-[860px] px-5 pb-24 pt-10 sm:px-8">
+          
+          {/* STEP: Overview */}
+          {activeStep.id === "overview" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <Link
+                href={`/roadmap?id=${lesson.roadmapId}`}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+              >
+                <ArrowLeft className="size-4" />
+                Back to roadmap
+              </Link>
 
-          {/* ── SECTION 1: Overview ── */}
-          <section id="overview-section" className="scroll-mt-14 space-y-6">
-            <Link
-              href={`/roadmap?id=${lesson.roadmapId}`}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
-            >
-              <ArrowLeft className="size-3" />
-              Back to roadmap
-            </Link>
-
-            <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">
-                Lesson {lesson.order} &middot; Week {lesson.week}
-              </p>
-              <h1 className="text-2xl font-bold leading-snug tracking-tight sm:text-3xl">
-                {lesson.title}
-              </h1>
-              <p className="text-base leading-7 text-[var(--muted-foreground)]">
-                {lesson.description}
-              </p>
-            </div>
-
-            <LessonMeta
-              estimatedDuration={lesson.estimatedDuration}
-              status={lesson.status}
-            />
-
-            {/* Objectives + Topics grid */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              {lesson.learningObjectives?.length > 0 && (
-                <div className="rounded-xl border bg-[var(--card)] p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <ListChecks className="size-4 text-[var(--primary)]" />
-                    <h3 className="text-sm font-semibold">Objectives</h3>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {lesson.learningObjectives.map((obj, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-2 text-xs leading-5 text-[var(--muted-foreground)]"
-                      >
-                        <span className="mt-1.5 size-1 shrink-0 rounded-full bg-[var(--primary)]" />
-                        {obj}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {lesson.topics?.length > 0 && (
-                <div className="rounded-xl border bg-[var(--card)] p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <BookOpen className="size-4 text-[var(--primary)]" />
-                    <h3 className="text-sm font-semibold">Topics</h3>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {lesson.topics.map((topic, i) => (
-                      <span
-                        key={i}
-                        className="rounded-full bg-[var(--secondary)] px-2.5 py-1 text-xs font-medium text-[var(--secondary-foreground)]"
-                      >
-                        {topic}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <hr className="my-10" />
-
-          {/* ── SECTION 2: Learn ── */}
-          <section id="learn-section" className="scroll-mt-14">
-            {aiContent ? (
-              <LessonContent content={aiContent} />
-            ) : (
-              <div className="rounded-xl border border-dashed p-8 text-center">
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  Lesson content is being prepared. Check back shortly or explore
-                  the resources tab.
+              <div className="space-y-4">
+                <p className="text-sm font-bold uppercase tracking-widest text-[var(--primary)]">
+                  Lesson {lesson.order} &middot; Week {lesson.week}
+                </p>
+                <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+                  {lesson.title}
+                </h1>
+                <p className="text-lg leading-8 text-[var(--muted-foreground)]">
+                  {lesson.description}
                 </p>
               </div>
-            )}
-          </section>
 
-          <hr className="my-10" />
+              <LessonMeta
+                estimatedDuration={lesson.estimatedDuration}
+                status={lesson.status}
+              />
 
-          {/* ── SECTION 3: Practice ── */}
-          <section id="practice-section" className="scroll-mt-14 space-y-4">
-            <h2 className="text-lg font-bold">Hands-on Practice</h2>
-            <div className="rounded-xl border bg-[var(--card)] p-5">
-              <p className="text-sm leading-7 text-[var(--muted-foreground)]">
-                {lesson.practice ||
-                  "Apply what you've learned by implementing a small coding exercise or task."}
-              </p>
+              <div className="grid gap-4 sm:grid-cols-2 mt-8">
+                {lesson.learningObjectives?.length > 0 && (
+                  <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="grid size-8 place-items-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
+                        <ListChecks className="size-4" />
+                      </span>
+                      <h3 className="text-base font-semibold">Objectives</h3>
+                    </div>
+                    <ul className="space-y-3">
+                      {lesson.learningObjectives.map((obj, i) => (
+                        <li key={i} className="flex items-start gap-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                          <Check className="mt-1 size-4 shrink-0 text-[var(--primary)]" />
+                          {obj}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {lesson.topics?.length > 0 && (
+                  <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="grid size-8 place-items-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
+                        <BookOpen className="size-4" />
+                      </span>
+                      <h3 className="text-base font-semibold">Topics</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {lesson.topics.map((topic, i) => (
+                        <span key={i} className="rounded-lg bg-[var(--secondary)] px-3 py-1.5 text-xs font-bold text-[var(--secondary-foreground)]">
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </section>
+          )}
 
-          <hr className="my-10" />
-
-          {/* ── SECTION 4: Resources ── */}
-          <section id="resources-section" className="scroll-mt-14">
-            <LessonResources
-              lessonId={lesson._id}
-              aiResources={aiResources}
-              initialUserResources={initialUserResources}
-            />
-          </section>
-
-          <hr className="my-10" />
-
-          {/* ── SECTION 5: Project ── */}
-          <section id="project-section" className="scroll-mt-14 space-y-4">
-            <h2 className="text-lg font-bold">Mini Project</h2>
-            <div className="rounded-xl border bg-[var(--card)] p-5">
-              <p className="text-sm leading-7 text-[var(--muted-foreground)]">
-                {lesson.project || "No mini project is included for this lesson."}
-              </p>
+          {/* STEP: Learn */}
+          {activeStep.id === "learn" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {aiContent ? (
+                <LessonContent content={aiContent} />
+              ) : (
+                <div className="rounded-2xl border border-dashed bg-[var(--card)] p-12 text-center">
+                  <p className="text-base font-medium text-[var(--muted-foreground)]">
+                    Lesson content is being prepared. Check back shortly.
+                  </p>
+                </div>
+              )}
             </div>
-          </section>
+          )}
 
-          <hr className="my-10" />
+          {/* STEP: Practice */}
+          {activeStep.id === "practice" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-2xl font-bold tracking-tight">Hands-on Practice</h2>
+              <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
+                <p className="text-base leading-8 text-[var(--foreground)]">
+                  {lesson.practice}
+                </p>
+              </div>
+            </div>
+          )}
 
-          {/* ── SECTION 6: Notes ── */}
-          <section id="notes-section" className="scroll-mt-14 space-y-4">
-            <h2 className="text-lg font-bold">My Notes</h2>
-            <LessonNotes lessonId={lesson._id} initialContent={noteContent} />
-          </section>
+          {/* STEP: Resources */}
+          {activeStep.id === "resources" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <LessonResources
+                lessonId={lesson._id}
+                aiResources={aiResources}
+                initialUserResources={initialUserResources}
+                globalResources={globalResources}
+              />
+            </div>
+          )}
 
-          {/* ── Lesson navigation (Prev / Mark Complete / Next) ── */}
-          <div className="mt-10">
+          {/* STEP: Project */}
+          {activeStep.id === "project" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-2xl font-bold tracking-tight">Mini Project</h2>
+              <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
+                <p className="text-base leading-8 text-[var(--foreground)]">
+                  {lesson.project}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* STEP: Notes */}
+          {activeStep.id === "notes" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-2xl font-bold tracking-tight">My Notes</h2>
+              <LessonNotes lessonId={lesson._id} initialContent={noteContent} />
+            </div>
+          )}
+
+          {/* ── Stepper Navigation ── */}
+          <div className="mt-16 border-t pt-8">
             <LessonActions
               lessonId={lesson._id}
               previousLessonId={previousLesson?._id}
               nextLessonId={nextLesson?._id}
               isCompleted={lesson.status === "completed"}
+              
+              // New stepper props
+              isFirstStep={activeIndex === 0}
+              isLastStep={activeIndex === STEPS.length - 1}
+              onPrevStep={() => setActiveIndex(activeIndex - 1)}
+              onNextStep={() => setActiveIndex(activeIndex + 1)}
+              nextStepLabel={activeIndex < STEPS.length - 1 ? STEPS[activeIndex + 1].label : null}
             />
           </div>
         </div>

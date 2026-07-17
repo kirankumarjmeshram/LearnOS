@@ -28,6 +28,18 @@ export const onboardingSchema = z.object({
   // Learning Style Ranking
   learningStyleRanking: z.array(z.string()).min(1, "Rank your learning style preferences."),
   
+  // User Resources (Optional)
+  resources: z.array(z.object({
+    title: z.string(),
+    type: z.string(),
+    url: z.string().optional(),
+    filePath: z.string().optional(),
+    technology: z.string(),
+    tags: z.array(z.string()).default([]),
+    notes: z.string().default(""),
+    visibility: z.enum(["global", "roadmap"]).default("roadmap"),
+  })).default([]),
+  
   // Legacy fields (optional / defaulted for backward compatibility)
   education: z.string().optional().default(""),
   experience: z.string().optional().default(""),
@@ -47,6 +59,7 @@ export const onboardingDefaults = {
   preferredTechnologyStack: [],
   customTechnologies: [],
   learningStyleRanking: ["Projects", "Videos", "Reading", "Interactive Labs", "Documentation"],
+  resources: [],
   education: "",
   experience: "",
   currentJob: "",

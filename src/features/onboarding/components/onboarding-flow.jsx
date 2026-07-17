@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, FormProvider } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Clock3, Pencil, Search, Sparkles, X, Plus } from "lucide-react";
@@ -13,6 +13,7 @@ import { onboardingDefaults, onboardingSchema } from "@/schemas/onboarding";
 import { completeOnboarding, setOnboardingData, setOnboardingStep } from "@/store/slices/onboarding-slice";
 import { TechnologySelector } from "./technology-selector";
 import { LearningStyleRanker } from "./learning-style-ranker";
+import { MyResourcesStep } from "./steps/my-resources-step";
 
 const steps = [
   "Career Goal",
@@ -23,6 +24,7 @@ const steps = [
   "Current Knowledge",
   "Technology Stack",
   "Learning Style",
+  "My Resources",
   "Review",
 ];
 
@@ -89,6 +91,7 @@ const stepFields = [
   ["currentKnowledge"],
   ["preferredTechnologyStack", "customTechnologies"],
   ["learningStyleRanking"],
+  ["resources"],
 ];
 
 function resolveOnboarding(values) {
@@ -134,6 +137,11 @@ export function OnboardingFlow() {
   // States for Current Knowledge step
   const [knowledgeQuery, setKnowledgeQuery] = useState("");
 
+  const methods = useForm({
+    defaultValues: savedData || onboardingDefaults,
+    resolver: resolveOnboarding,
+  });
+
   const {
     control,
     register,
@@ -141,10 +149,7 @@ export function OnboardingFlow() {
     getValues,
     trigger,
     formState: { errors },
-  } = useForm({
-    defaultValues: savedData || onboardingDefaults,
-    resolver: resolveOnboarding,
-  });
+  } = methods;
 
   const values = useWatch({ control });
 
@@ -214,8 +219,9 @@ export function OnboardingFlow() {
   };
 
   return (
-    <section className="mx-auto w-full max-w-3xl">
-      {/* Step counter & save option */}
+    <FormProvider {...methods}>
+      <section className="mx-auto w-full max-w-3xl">
+        {/* Step counter & save option */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-[var(--primary)]">LearnOS onboarding</p>
@@ -540,15 +546,20 @@ export function OnboardingFlow() {
           </div>
         )}
 
-        {/* STEP 9: Review */}
+        {/* STEP 9: My Resources */}
         {step === 8 && (
+          <MyResourcesStep />
+        )}
+
+        {/* STEP 10: Review */}
+        {step === 9 && (
           <div>
             <h1 className="text-3xl font-semibold">Review your learning profile</h1>
             <p className="mt-2 text-[var(--muted-foreground)]">
               Make sure everything looks right before generating your roadmap.
             </p>
             
-            <div className="mt-6 divide-y overflow-hidden rounded-2xl border">
+            <div className="mt-6 divide-y overflow-hidden rounded-2xl border bg-[var(--background)]">
               {[
                 { label: "Career Goal", value: values.goal, stepIdx: 0 },
                 { label: "Experience Level", value: values.experienceLevel, stepIdx: 1 },
@@ -574,6 +585,11 @@ export function OnboardingFlow() {
                   label: "Learning Style Rank",
                   value: values.learningStyleRanking?.join(" → "),
                   stepIdx: 7,
+                },
+                {
+                  label: "My Resources",
+                  value: values.resources?.length > 0 ? `${values.resources.length} resources added` : "None added",
+                  stepIdx: 8,
                 },
               ].map(({ label, value, stepIdx }) => (
                 <div key={label} className="flex items-center justify-between gap-4 p-4 hover:bg-[var(--secondary)]/10 transition-colors">
@@ -631,5 +647,6 @@ export function OnboardingFlow() {
         </div>
       </motion.div>
     </section>
+    </FormProvider>
   );
 }

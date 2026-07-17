@@ -11,6 +11,11 @@ export function LessonActions({
   previousLessonId,
   nextLessonId,
   isCompleted,
+  isFirstStep,
+  isLastStep,
+  onPrevStep,
+  onNextStep,
+  nextStepLabel,
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +30,11 @@ export function LessonActions({
       if (!response.ok) throw new Error(payload.error || "We could not update this lesson.");
       toast.success("Lesson marked complete. Great work! 🎉");
       router.refresh();
+      
+      // Auto-navigate to next lesson if available
+      if (nextLessonId) {
+        router.push(`/lesson/${nextLessonId}`);
+      }
     } catch (error) {
       toast.error(error.message || "We could not update this lesson.");
     } finally {
@@ -33,46 +43,54 @@ export function LessonActions({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-6">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
-        {previousLessonId ? (
+        {!isFirstStep ? (
+          <button
+            type="button"
+            onClick={onPrevStep}
+            className="inline-flex items-center gap-2 rounded-xl border bg-[var(--card)] px-4 py-2.5 text-sm font-semibold hover:bg-[var(--muted)]"
+          >
+            <ChevronLeft className="size-4" />
+            Previous
+          </button>
+        ) : previousLessonId ? (
           <Link
             href={`/lesson/${previousLessonId}`}
             className="inline-flex items-center gap-2 rounded-xl border bg-[var(--card)] px-4 py-2.5 text-sm font-semibold hover:bg-[var(--muted)]"
           >
             <ChevronLeft className="size-4" />
-            Previous
+            Prev Lesson
           </Link>
         ) : (
           <div /> /* spacer */
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={markComplete}
-        disabled={isCompleted || isSubmitting}
-        className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {isSubmitting ? (
-          <LoaderCircle className="size-4 animate-spin" />
-        ) : (
-          <CheckCircle2 className="size-4" />
-        )}
-        {isCompleted ? "Completed ✓" : "Mark Complete"}
-      </button>
-
-      <div>
-        {nextLessonId ? (
-          <Link
-            href={`/lesson/${nextLessonId}`}
-            className="inline-flex items-center gap-2 rounded-xl border bg-[var(--card)] px-4 py-2.5 text-sm font-semibold hover:bg-[var(--muted)]"
+      <div className="flex gap-3">
+        {isLastStep ? (
+          <button
+            type="button"
+            onClick={markComplete}
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Next
-            <ChevronRight className="size-4" />
-          </Link>
+            {isSubmitting ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="size-4" />
+            )}
+            {isCompleted ? (nextLessonId ? "Next Lesson" : "Completed ✓") : "Mark Complete"}
+          </button>
         ) : (
-          <div /> /* spacer */
+          <button
+            type="button"
+            onClick={onNextStep}
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90"
+          >
+            Next: {nextStepLabel}
+            <ChevronRight className="size-4" />
+          </button>
         )}
       </div>
     </div>

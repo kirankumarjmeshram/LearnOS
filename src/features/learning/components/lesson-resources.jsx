@@ -72,75 +72,72 @@ function extractYouTubeId(url) {
 function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
   const Icon = iconByType[resource.type] || Link2;
   const videoId = resource.type === "youtube" ? extractYouTubeId(resource.url) : null;
+  const linkHref = resource.filePath || resource.url || "#";
 
   return (
-    <div className="rounded-xl border bg-[var(--card)]">
-      {/* YouTube embed */}
-      {videoId && (
-        <div className="aspect-video overflow-hidden rounded-t-xl bg-black">
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}`}
-            className="h-full w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={resource.title}
-            loading="lazy"
-          />
-        </div>
-      )}
-
-      {/* Image preview */}
-      {resource.type === "image" && resource.url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={resource.url}
-          alt={resource.title}
-          className="max-h-48 w-full rounded-t-xl object-cover"
-          onError={(e) => { e.currentTarget.style.display = "none"; }}
-        />
-      )}
-
-      {/* Card body */}
-      <div className="p-4">
-        <a
-          href={resource.url || "#"}
-          target="_blank"
-          rel="noreferrer"
-          className={resource.url ? "group flex items-start gap-3" : "pointer-events-none flex items-start gap-3 opacity-60"}
-        >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--secondary)] text-[var(--primary)]">
-            <Icon className="size-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-medium group-hover:text-[var(--primary)]">
-              {resource.title}
-            </span>
-            <span className="mt-1 block text-sm leading-5 capitalize text-[var(--muted-foreground)]">
-              {resource.description || resource.type}
-            </span>
-          </span>
-          {resource.url && (
-            <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-[var(--muted-foreground)]" />
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-[var(--card)] p-4 transition-all hover:border-[var(--primary)] hover:shadow-sm max-h-[140px] h-full">
+      <div className="flex gap-3 min-h-0">
+        {/* Thumbnail or Icon */}
+        <div className="shrink-0">
+          {videoId ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`https://img.youtube.com/vi/${videoId}/default.jpg`}
+              alt="Thumbnail"
+              className="h-12 w-16 rounded-md object-cover"
+            />
+          ) : resource.type === "image" && resource.url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={resource.url}
+              alt={resource.title}
+              className="h-12 w-16 rounded-md object-cover"
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+          ) : (
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-[var(--secondary)] text-[var(--primary)]">
+              <Icon className="size-5" />
+            </div>
           )}
-        </a>
+        </div>
 
+        {/* Text */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <a
+            href={linkHref}
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-sm leading-tight line-clamp-2 hover:text-[var(--primary)] transition-colors"
+          >
+            {resource.title}
+          </a>
+          <span className="mt-1 text-xs text-[var(--muted-foreground)] capitalize line-clamp-1">
+            {resource.description || resource.type}
+          </span>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-3 border-t mt-3">
+         <a href={linkHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:underline">
+            Open Resource <ExternalLink className="size-3.5" />
+         </a>
+        
         {canEdit && (
-          <div className="mt-3 flex gap-2 border-t pt-3">
+          <div className="flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
             <button
               type="button"
               onClick={() => onEdit(resource)}
-              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
             >
               <Pencil className="size-3.5" />
-              Edit
             </button>
             <button
               type="button"
               onClick={() => onDelete(resource._id)}
-              className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
+              className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-red-50 hover:text-red-600"
             >
               <Trash2 className="size-3.5" />
-              Delete
             </button>
           </div>
         )}
@@ -149,7 +146,7 @@ function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
   );
 }
 
-export function LessonResources({ lessonId, aiResources, initialUserResources }) {
+export function LessonResources({ lessonId, aiResources, initialUserResources, globalResources = [] }) {
   const [userResources, setUserResources] = useState(initialUserResources);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
@@ -211,43 +208,27 @@ export function LessonResources({ lessonId, aiResources, initialUserResources })
     }
   };
 
+  // Combine global resources and lesson-specific user resources
+  const allUserResources = [...globalResources, ...userResources];
+
   return (
     <div className="space-y-5">
-      {/* ── Curated Learning Content (AI) ── */}
+      {/* ── My Resources (user-added & global) ── */}
       <section className="rounded-2xl border bg-[var(--card)] p-6">
-        <h2 className="text-xl font-semibold">Learning Content</h2>
+        <h2 className="text-xl font-semibold">⭐ Your Resources</h2>
         <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-          Curated videos, official documentation, and practice resources for this lesson.
-        </p>
-        {sortedAiResources.length > 0 ? (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            {sortedAiResources.map((resource) => (
-              <ResourceCard key={resource._id} resource={resource} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-5 rounded-xl border border-dashed p-4 text-sm text-[var(--muted-foreground)]">
-            No curated resources yet. They will appear here once generated.
-          </p>
-        )}
-      </section>
-
-      {/* ── My Resources (user-added) ── */}
-      <section className="rounded-2xl border bg-[var(--card)] p-6">
-        <h2 className="text-xl font-semibold">My Resources</h2>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-          Save links you want to keep with this lesson.
+          Saved links and matching resources from your library.
         </p>
 
-        {userResources.length > 0 ? (
+        {allUserResources.length > 0 ? (
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            {userResources.map((resource) => (
+            {allUserResources.map((resource) => (
               <ResourceCard
                 key={resource._id}
                 resource={resource}
-                canEdit
-                onEdit={editResource}
-                onDelete={deleteResource}
+                canEdit={!resource.visibility} // only lesson-specific resources can be edited here
+                onEdit={!resource.visibility ? editResource : undefined}
+                onDelete={!resource.visibility ? deleteResource : undefined}
               />
             ))}
           </div>
@@ -314,6 +295,25 @@ export function LessonResources({ lessonId, aiResources, initialUserResources })
             )}
           </div>
         </form>
+      </section>
+
+      {/* ── Curated Learning Content (AI) ── */}
+      <section className="rounded-2xl border bg-[var(--card)] p-6">
+        <h2 className="text-xl font-semibold">Recommended Resources</h2>
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+          Curated videos, official documentation, and practice resources for this lesson.
+        </p>
+        {sortedAiResources.length > 0 ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {sortedAiResources.map((resource) => (
+              <ResourceCard key={resource._id} resource={resource} />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-5 rounded-xl border border-dashed p-4 text-sm text-[var(--muted-foreground)]">
+            No curated resources yet. They will appear here once generated.
+          </p>
+        )}
       </section>
     </div>
   );
