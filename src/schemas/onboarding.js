@@ -1,21 +1,52 @@
 import { z } from "zod";
 
 export const onboardingSchema = z.object({
-  goal: z.string().min(2, "Choose or enter a learning goal."),
+  // Career Goal (target role)
+  goal: z.string().min(2, "Choose or enter a career goal."),
+  
+  // Experience Level
+  experienceLevel: z.string().min(1, "Select your experience level."),
+  
+  // Learning Goal
+  learningGoal: z.string().min(1, "Select your learning goal."),
+  
+  // Timeline
   timeline: z.string().min(1, "Choose a target timeline."),
+  
+  // Weekly Study Hours
   weeklyHours: z.coerce.number().min(5, "Choose at least 5 hours per week.").max(40),
-  education: z.string().optional(),
-  experience: z.string().optional(),
-  currentJob: z.string().optional(),
-  country: z.string().optional(),
-  learningStyles: z.array(z.string()).min(1, "Select at least one learning style."),
-  assessmentDecision: z.enum(["skip", "start"], { message: "Choose how to continue with the assessment." }),
+  
+  // Current Knowledge
+  currentKnowledge: z.array(z.string()).default([]),
+  
+  // Preferred Technology Stack
+  preferredTechnologyStack: z.array(z.string()).default([]),
+  
+  // Custom Technologies
+  customTechnologies: z.array(z.string()).default([]),
+  
+  // Learning Style Ranking
+  learningStyleRanking: z.array(z.string()).min(1, "Rank your learning style preferences."),
+  
+  // Legacy fields (optional / defaulted for backward compatibility)
+  education: z.string().optional().default(""),
+  experience: z.string().optional().default(""),
+  currentJob: z.string().optional().default(""),
+  country: z.string().optional().default(""),
+  learningStyles: z.array(z.string()).optional().default([]),
+  assessmentDecision: z.enum(["skip", "start"]).optional().default("skip"),
 });
 
 export const onboardingDefaults = {
   goal: "",
-  timeline: "",
+  experienceLevel: "Complete Beginner",
+  learningGoal: "Upskill",
+  timeline: "3 Months",
   weeklyHours: 10,
+  currentKnowledge: [],
+  preferredTechnologyStack: [],
+  customTechnologies: [],
+  learningStyleRanking: ["Projects", "Videos", "Reading", "Interactive Labs", "Documentation"],
   education: "",
   experience: "",
   currentJob: "",
