@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Bookmark,
@@ -23,6 +23,59 @@ const iconByType = {
   website: Link2,
   other: Link2,
 };
+
+function SidebarSection({ title, id, defaultOpen = true, children, rightElement }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setMounted(true);
+      const saved = sessionStorage.getItem(`learnos:sidebar:${id}`);
+      if (saved !== null) {
+        setIsOpen(saved === "true");
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [id]);
+
+  const toggle = () => {
+    const next = !isOpen;
+    setIsOpen(next);
+    sessionStorage.setItem(`learnos:sidebar:${id}`, next);
+  };
+
+  if (!mounted) {
+    return (
+      <section className="flex flex-col">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+            <ChevronRight className={cn("size-3 transition-transform", defaultOpen && "rotate-90")} />
+            {title}
+          </div>
+          {rightElement}
+        </div>
+        {defaultOpen && <div className="mt-2.5">{children}</div>}
+      </section>
+    );
+  }
+
+  return (
+    <section className="flex flex-col">
+      <div 
+        className="flex items-center justify-between py-1 group cursor-pointer select-none" 
+        onClick={toggle}
+      >
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors">
+          <ChevronRight className={cn("size-3 transition-transform", isOpen && "rotate-90")} />
+          {title}
+        </div>
+        <div onClick={e => e.stopPropagation()}>{rightElement}</div>
+      </div>
+      {isOpen && <div className="mt-2.5">{children}</div>}
+    </section>
+  );
+}
 
 export function LearningHub({
   lesson,
@@ -47,15 +100,18 @@ export function LearningHub({
   const nextLesson = nextLessonIndex > -1 ? phaseLessons[nextLessonIndex] : null;
 
   // ─── Bookmarks ─────────────────────────────────────────────────────────────
-  const [isBookmarked, setIsBookmarked] = useState(() => {
-    if (typeof window === "undefined" || !lessonId) return false;
-    try {
-      const bookmarks = JSON.parse(localStorage.getItem("learnos:bookmarks") ?? "[]");
-      return bookmarks.includes(lessonId);
-    } catch {
-      return false;
-    }
-  });
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  
+  useEffect(() => {
+    if (!lessonId) return;
+    const t = setTimeout(() => {
+      try {
+        const bookmarks = JSON.parse(localStorage.getItem("learnos:bookmarks") ?? "[]");
+        setIsBookmarked(bookmarks.includes(lessonId));
+      } catch {}
+    }, 0);
+    return () => clearTimeout(t);
+  }, [lessonId]);
 
   const toggleBookmark = () => {
     if (!lessonId) return;
@@ -107,62 +163,60 @@ export function LearningHub({
   };
 
   // ─── Quick Resources ───────────────────────────────────────────────────────
-  const quickResources = [...globalResources, ...aiResources].slice(0, 4);
+  const quickResources = [...globalResources, ...aiResources].slice(0, 3);
 
   return (
-    <aside className="hidden h-full w-[320px] shrink-0 flex-col gap-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] xl:flex shadow-sm">
-      <div className="flex items-center gap-2 border-b border-[var(--border)] p-4">
+    <aside className="hidden h-full w-[280px] shrink-0 flex-col gap-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] xl:flex shadow-sm">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
         <h2 className="text-sm font-bold tracking-tight">Learning Hub</h2>
       </div>
 
-      <div className="flex-1 space-y-8 p-5">
+      <div className="flex-1 space-y-5 p-4">
         
         {/* Module Progress */}
-        <section className="space-y-4">
-          <div>
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
-                Module Progress
-              </p>
-              <span className="text-[10px] font-bold text-[var(--foreground)]">{completedLessons} / {totalLessons} Lessons</span>
-            </div>
-            <p className="mt-1 text-xs font-semibold leading-tight line-clamp-2">
-              {currentPhaseName}
-            </p>
-          </div>
-
-          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-            <div
-              className="h-full bg-[var(--primary)] transition-[width] duration-300"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-
-          <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
-            <div className="flex gap-3">
-              <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-12 shrink-0">Current</span>
-              <span className="text-xs font-semibold line-clamp-1">{lesson.title.split(":").pop()?.trim()}</span>
-            </div>
-            {nextLesson && (
-              <div className="flex gap-3">
-                <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-12 shrink-0">Next</span>
-                <Link href={`/lesson/${nextLesson._id}`} className="text-xs font-semibold line-clamp-1 hover:text-[var(--primary)] transition-colors">
-                  {nextLesson.title.split(":").pop()?.trim()}
-                </Link>
+        <SidebarSection title="Module Progress" id="progress" defaultOpen={true}>
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-semibold leading-tight line-clamp-1 flex-1">
+                  {currentPhaseName}
+                </p>
+                <span className="text-[10px] font-bold text-[var(--muted-foreground)] ml-2">{completedLessons}/{totalLessons}</span>
               </div>
-            )}
+              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+                <div
+                  className="h-full bg-[var(--primary)] transition-[width] duration-300"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5">
+              <div className="flex gap-2">
+                <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-10 shrink-0">Now</span>
+                <span className="text-xs font-semibold line-clamp-1">{lesson.title.split(":").pop()?.trim()}</span>
+              </div>
+              {nextLesson && (
+                <div className="flex gap-2">
+                  <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-10 shrink-0">Next</span>
+                  <Link href={`/lesson/${nextLesson._id}`} className="text-xs font-semibold line-clamp-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
+                    {nextLesson.title.split(":").pop()?.trim()}
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-        </section>
+        </SidebarSection>
 
         <hr className="border-[var(--border)]" />
 
         {/* Embedded Notes */}
-        <section className="space-y-3 flex flex-col h-64">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)] flex items-center gap-1.5">
-              📝 Notes
-            </p>
-            <span className="inline-flex shrink-0 items-center gap-1.5 text-[10px] font-semibold text-[var(--muted-foreground)]">
+        <SidebarSection 
+          title="Notes" 
+          id="notes" 
+          defaultOpen={true}
+          rightElement={
+            <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-[var(--muted-foreground)]">
               {status === "saving" ? (
                 <><LoaderCircle className="size-3 animate-spin" /> Saving</>
               ) : status === "saved" ? (
@@ -173,83 +227,83 @@ export function LearningHub({
                 <><Save className="size-3" /> Unsaved</>
               )}
             </span>
-          </div>
+          }
+        >
           <textarea
             value={content}
             onChange={handleNoteChange}
             placeholder="Type your markdown notes here..."
-            className="flex-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 font-mono text-[11px] leading-5 outline-none transition-shadow focus:ring-2 focus:ring-[var(--ring)] resize-none"
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 font-mono text-[11px] leading-5 outline-none transition-shadow focus:border-[var(--primary)] resize-y min-h-[100px] h-[150px] max-h-[400px]"
           />
-        </section>
+        </SidebarSection>
 
         <hr className="border-[var(--border)]" />
 
         {/* Quick Resources */}
-        <section className="space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)] flex items-center gap-1.5">
-            ⭐ Quick Resources
-          </p>
-          
-          <div className="space-y-1.5">
+        <SidebarSection title="Quick Resources" id="resources" defaultOpen={false}>
+          <div className="space-y-1">
             {quickResources.map(res => {
               const Icon = iconByType[res.type] || Link2;
               const url = res.filePath || res.url;
               return (
-                <a key={res._id} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 rounded-lg p-2 text-xs font-semibold hover:bg-[var(--muted)] transition-colors">
+                <a key={res._id} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-md p-1.5 text-xs font-semibold hover:bg-[var(--muted)] transition-colors">
                   <Icon className="size-3.5 text-[var(--muted-foreground)] shrink-0" />
                   <span className="line-clamp-1 min-w-0 flex-1">{res.title}</span>
                 </a>
               )
             })}
+            {quickResources.length === 0 && (
+              <p className="text-xs text-[var(--muted-foreground)] px-1.5 py-1">No resources yet.</p>
+            )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-2">
             <button
               onClick={() => {
                 onOpenResources();
-                // Optionally scroll to form when the drawer opens
                 setTimeout(() => {
                   const form = document.querySelector('form');
                   if (form) form.scrollIntoView({ behavior: 'smooth' });
                 }, 100);
               }}
-              className="flex-1 rounded-lg bg-[var(--primary)] px-3 py-2 text-xs font-bold text-[var(--primary-foreground)] hover:opacity-90 transition-opacity text-center"
+              className="flex-1 rounded-md bg-[var(--primary)] px-2.5 py-1.5 text-[10px] font-bold text-[var(--primary-foreground)] hover:opacity-90 transition-opacity text-center"
             >
-              + Add Resource
+              Add Resource
             </button>
             <button
               onClick={onOpenResources}
-              className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-bold text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors text-center"
+              className="flex-1 rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-[10px] font-bold text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors text-center"
             >
               View All
             </button>
           </div>
-        </section>
+        </SidebarSection>
 
         <hr className="border-[var(--border)]" />
 
         {/* Tools & Bookmarks */}
-        <section className="space-y-2">
-          <button
-            onClick={() => toast.info("Ask AI is coming soon!")}
-            className="flex w-full items-center gap-2.5 rounded-lg p-2 text-xs font-bold hover:bg-[var(--muted)] transition-colors"
-          >
-            <Sparkles className="size-4 text-[var(--primary)]" />
-            Ask AI
-          </button>
-          
-          <button
-            onClick={toggleBookmark}
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg p-2 text-xs font-bold transition-colors",
-              isBookmarked ? "text-amber-600 bg-amber-50 dark:bg-amber-950/20" : "hover:bg-[var(--muted)]"
-            )}
-          >
-            <Bookmark className={cn("size-4", isBookmarked && "fill-current")} />
-            {isBookmarked ? "Bookmarked" : "Bookmark Lesson"}
-          </button>
-        </section>
-
+        <SidebarSection title="Quick Actions" id="actions" defaultOpen={false}>
+          <div className="space-y-1">
+            <button
+              onClick={() => toast.info("Ask AI is coming soon!")}
+              className="flex w-full items-center gap-2 rounded-md p-1.5 text-xs font-bold hover:bg-[var(--muted)] transition-colors"
+            >
+              <Sparkles className="size-3.5 text-[var(--primary)]" />
+              Ask AI
+            </button>
+            
+            <button
+              onClick={toggleBookmark}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md p-1.5 text-xs font-bold transition-colors",
+                isBookmarked ? "text-amber-600 bg-amber-50 dark:bg-amber-950/20" : "hover:bg-[var(--muted)]"
+              )}
+            >
+              <Bookmark className={cn("size-3.5", isBookmarked && "fill-current")} />
+              {isBookmarked ? "Bookmarked" : "Bookmark Lesson"}
+            </button>
+          </div>
+        </SidebarSection>
       </div>
     </aside>
   );
