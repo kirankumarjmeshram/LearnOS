@@ -21,6 +21,7 @@ const lessonSchema = new mongoose.Schema({
   aiContent: { type: mongoose.Schema.Types.Mixed, default: null },
   order: { type: Number, required: true, min: 1 },
   status: { type: String, enum: ["pending", "completed"], default: "pending", index: true },
+  generationStatus: { type: String, enum: ["pending", "generating", "completed", "failed"], default: "pending" },
   completedAt: { type: Date, default: null },
 }, { timestamps: true });
 

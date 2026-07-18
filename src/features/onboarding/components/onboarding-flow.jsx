@@ -195,7 +195,7 @@ export function OnboardingFlow() {
     if (!(await trigger())) return;
     dispatch(setOnboardingData(getValues()));
     dispatch(completeOnboarding());
-    router.push("/roadmap/loading");
+    router.push("/dashboard?generating=true");
   };
 
   const chooseGoal = (goal) => {

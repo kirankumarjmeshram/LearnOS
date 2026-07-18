@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { memo, useMemo, useEffect, useRef, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -22,7 +22,7 @@ function getLessonsForPhase(lessons, phaseId) {
 
 // ─── Phase header (phase + its lessons list) ─────────────────────────────────
 
-function PhaseSection({
+const PhaseSection = memo(function PhaseSection({
   phase,
   phaseIndex,
   phaseLessons,
@@ -126,7 +126,7 @@ function PhaseSection({
       )}
     </div>
   );
-}
+});
 
 // ─── Inner sidebar content (shared between desktop and mobile) ────────────────
 
@@ -152,12 +152,16 @@ function SidebarInner({
 
   // Filter logic
   const query = searchQuery.toLowerCase().trim();
-  const filteredLessons = query 
-    ? lessons.filter(l => l.title.toLowerCase().includes(query))
-    : lessons;
   
-  const filteredPhaseIds = new Set(filteredLessons.map(l => l.phaseId));
-  const filteredPhases = phases.filter(p => filteredPhaseIds.has(p._id));
+  const { filteredPhases, filteredLessons } = useMemo(() => {
+    if (!query) return { filteredPhases: phases, filteredLessons: lessons };
+    
+    const matchedLessons = lessons.filter(l => l.title.toLowerCase().includes(query));
+    const matchedPhaseIds = new Set(matchedLessons.map(l => l.phaseId));
+    const matchedPhases = phases.filter(p => matchedPhaseIds.has(p._id));
+    
+    return { filteredPhases: matchedPhases, filteredLessons: matchedLessons };
+  }, [query, phases, lessons]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--background)]">

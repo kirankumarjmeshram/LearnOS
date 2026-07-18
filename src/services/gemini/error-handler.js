@@ -13,11 +13,12 @@ export function handleGeminiError(error) {
   // If already mapped, return it
   if (error instanceof GeminiAPIError) return error;
 
-  // Ensure raw errors are logged securely on the server only
-  console.error("[Gemini API Error]:", error);
-
-  // Gemini SDK typically exposes status on the error or response object
+  // Log securely on the server only. 
+  // Use warn instead of error to prevent Next.js dev overlay from hijacking expected rate limits.
   const status = error?.status || error?.response?.status;
+  if (status !== 429) {
+    console.warn("[Gemini API Error]:", error?.message || error);
+  }
 
   // Extract Retry-After if provided
   let retryDelay = null;
@@ -32,8 +33,9 @@ export function handleGeminiError(error) {
 
   // 1. RESOURCE_EXHAUSTED (429) -> NOT TRANSIENT (Abort and show friendly message)
   if (status === 429) {
+    const timeMsg = retryDelay ? `in ${retryDelay} seconds` : "in about one minute";
     return new GeminiAPIError(
-      `AI generation is temporarily unavailable because the configured Gemini API key has reached its request quota. Please wait a moment and try again.${delayMsg}`,
+      `Lesson generation is temporarily unavailable. Please try again ${timeMsg}.`,
       false,
       retryDelay
     );

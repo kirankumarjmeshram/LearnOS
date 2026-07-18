@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Bookmark,
@@ -38,14 +38,20 @@ export function LearningHub({
   const lessonId = lesson?._id;
 
   // ─── Module Progress ────────────────────────────────────────────────────────
-  const phaseLessons = lessons.filter((l) => l.phaseId === lesson?.phaseId);
-  const completedLessons = phaseLessons.filter((l) => l.status === "completed").length;
-  const totalLessons = phaseLessons.length;
-  const progressPct = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-
-  // Next lesson in module
-  const nextLessonIndex = phaseLessons.findIndex(l => l.order > lesson.order);
-  const nextLesson = nextLessonIndex > -1 ? phaseLessons[nextLessonIndex] : null;
+  const { phaseLessons, completedLessons, totalLessons, progressPct, nextLesson } = useMemo(() => {
+    const phaseL = lessons.filter((l) => l.phaseId === lesson?.phaseId);
+    const completedL = phaseL.filter((l) => l.status === "completed").length;
+    const totalL = phaseL.length;
+    const progress = totalL > 0 ? Math.round((completedL / totalL) * 100) : 0;
+    const nextLessonIdx = phaseL.findIndex((l) => l.order > lesson?.order);
+    return {
+      phaseLessons: phaseL,
+      completedLessons: completedL,
+      totalLessons: totalL,
+      progressPct: progress,
+      nextLesson: nextLessonIdx > -1 ? phaseL[nextLessonIdx] : null,
+    };
+  }, [lessons, lesson]);
 
   // ─── Bookmarks ─────────────────────────────────────────────────────────────
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -191,7 +197,7 @@ export function LearningHub({
               onClick={() => setIsNotesOpen(!isNotesOpen)} 
               className="text-[10px] font-bold text-[var(--primary)] hover:underline"
             >
-              {isNotesOpen ? "Close Notes" : "Open Notes"}
+              {isNotesOpen ? "Close Notes" : "Add Notes"}
             </button>
           </div>
           

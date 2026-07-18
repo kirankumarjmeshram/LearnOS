@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { onboardingSchema } from "@/schemas/onboarding";
 import { generateRoadmap } from "@/services/gemini/roadmap-generator";
 import { saveRoadmap } from "@/services/roadmap-service";
+import { pregenerateLessons } from "@/services/gemini/content-generator";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,10 @@ export async function POST(request) {
     const onboarding = onboardingSchema.parse(body.onboarding);
     const roadmap = await generateRoadmap(onboarding);
     const savedRoadmap = await saveRoadmap({ clerkId: userId, onboarding, roadmap });
+    
+    // Background pre-generation (fire-and-forget)
+    pregenerateLessons(savedRoadmap._id).catch(console.error);
+
     return NextResponse.json({ roadmap: savedRoadmap }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "We could not generate your roadmap.";

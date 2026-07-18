@@ -1,19 +1,3 @@
-// import "server-only";
-
-// import mongoose from "mongoose";
-
-// import { getMongoEnv } from "@/lib/env";
-
-// const globalForMongoose = global;
-// const cached = globalForMongoose.mongoose || { connection: null, promise: null };
-
-// export async function connectToDatabase() {
-//   if (cached.connection) return cached.connection;
-//   if (!cached.promise) cached.promise = mongoose.connect(getMongoEnv().MONGODB_URI, { bufferCommands: false });
-//   cached.connection = await cached.promise;
-//   globalForMongoose.mongoose = cached;
-//   return cached.connection;
-// }
 import "server-only";
 import mongoose from "mongoose";
 

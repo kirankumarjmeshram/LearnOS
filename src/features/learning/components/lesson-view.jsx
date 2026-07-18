@@ -59,6 +59,7 @@ export function LessonView({
   globalResources,
   noteContent,
   aiContent,
+  aiError,
 }) {
   const router = useRouter();
   const [isResourcesDrawerOpen, setIsResourcesDrawerOpen] = useState(false);
@@ -270,7 +271,11 @@ export function LessonView({
 
           {/* LEARN SECTION (AI Content) */}
           <section className="mb-12">
-            {aiContent ? (
+            {aiError ? (
+              <div className="rounded-2xl border border-dashed border-red-500/30 bg-red-500/10 p-12 text-center text-red-600 dark:text-red-400">
+                <p className="text-base font-semibold">{aiError}</p>
+              </div>
+            ) : aiContent ? (
               <LessonContent content={aiContent} />
             ) : (
               <div className="rounded-2xl border border-dashed bg-[var(--card)] p-12 text-center">
