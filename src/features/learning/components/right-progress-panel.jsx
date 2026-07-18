@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 const iconByType = {
   youtube: Video,
@@ -23,59 +24,6 @@ const iconByType = {
   website: Link2,
   other: Link2,
 };
-
-function SidebarSection({ title, id, defaultOpen = true, children, rightElement }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setMounted(true);
-      const saved = sessionStorage.getItem(`learnos:sidebar:${id}`);
-      if (saved !== null) {
-        setIsOpen(saved === "true");
-      }
-    }, 0);
-    return () => clearTimeout(t);
-  }, [id]);
-
-  const toggle = () => {
-    const next = !isOpen;
-    setIsOpen(next);
-    sessionStorage.setItem(`learnos:sidebar:${id}`, next);
-  };
-
-  if (!mounted) {
-    return (
-      <section className="flex flex-col">
-        <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
-            <ChevronRight className={cn("size-3 transition-transform", defaultOpen && "rotate-90")} />
-            {title}
-          </div>
-          {rightElement}
-        </div>
-        {defaultOpen && <div className="mt-2.5">{children}</div>}
-      </section>
-    );
-  }
-
-  return (
-    <section className="flex flex-col">
-      <div 
-        className="flex items-center justify-between py-1 group cursor-pointer select-none" 
-        onClick={toggle}
-      >
-        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors">
-          <ChevronRight className={cn("size-3 transition-transform", isOpen && "rotate-90")} />
-          {title}
-        </div>
-        <div onClick={e => e.stopPropagation()}>{rightElement}</div>
-      </div>
-      {isOpen && <div className="mt-2.5">{children}</div>}
-    </section>
-  );
-}
 
 export function LearningHub({
   lesson,
@@ -135,6 +83,7 @@ export function LearningHub({
   // ─── Notes Auto-save ───────────────────────────────────────────────────────
   const [content, setContent] = useState(noteContent ?? "");
   const [status, setStatus] = useState("saved"); // "saved" | "pending" | "saving" | "error"
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const timerRef = useRef(null);
 
   const saveNote = async (nextContent) => {
@@ -166,98 +115,155 @@ export function LearningHub({
   const quickResources = [...globalResources, ...aiResources].slice(0, 3);
 
   return (
-    <aside className="hidden h-full w-[280px] shrink-0 flex-col gap-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] xl:flex shadow-sm">
-      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
+    <aside className="hidden h-full w-[300px] shrink-0 flex-col gap-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] xl:flex shadow-sm pb-8">
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--border)] bg-[var(--background)]/95 px-4 py-3 backdrop-blur">
         <h2 className="text-sm font-bold tracking-tight">Learning Hub</h2>
       </div>
 
-      <div className="flex-1 space-y-5 p-4">
+      <div className="flex-1 space-y-4 p-4">
         
-        {/* Module Progress */}
-        <SidebarSection title="Module Progress" id="progress" defaultOpen={true}>
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-xs font-semibold leading-tight line-clamp-1 flex-1">
-                  {currentPhaseName}
-                </p>
-                <span className="text-[10px] font-bold text-[var(--muted-foreground)] ml-2">{completedLessons}/{totalLessons}</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-                <div
-                  className="h-full bg-[var(--primary)] transition-[width] duration-300"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5 rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5">
-              <div className="flex gap-2">
-                <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-10 shrink-0">Now</span>
-                <span className="text-xs font-semibold line-clamp-1">{lesson.title.split(":").pop()?.trim()}</span>
-              </div>
-              {nextLesson && (
-                <div className="flex gap-2">
-                  <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-10 shrink-0">Next</span>
-                  <Link href={`/lesson/${nextLesson._id}`} className="text-xs font-semibold line-clamp-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
-                    {nextLesson.title.split(":").pop()?.trim()}
-                  </Link>
-                </div>
-              )}
+        {/* Module Progress Card */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Module Progress</h3>
+            <span className="text-[10px] font-bold text-[var(--foreground)]">{completedLessons} / {totalLessons}</span>
+          </div>
+          
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold leading-tight line-clamp-2">
+              {currentPhaseName}
+            </p>
+            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+              <div
+                className="h-full bg-[var(--primary)] transition-[width] duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
           </div>
-        </SidebarSection>
 
-        <hr className="border-[var(--border)]" />
+          <div className="space-y-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] p-2.5">
+            <div className="flex gap-2">
+              <span className="text-[10px] font-bold uppercase text-[var(--primary)] w-10 shrink-0">Now</span>
+              <span className="text-xs font-semibold line-clamp-1">{lesson.title.split(":").pop()?.trim()}</span>
+            </div>
+            {nextLesson && (
+              <div className="flex gap-2">
+                <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-10 shrink-0">Next</span>
+                <Link href={`/lesson/${nextLesson._id}`} className="text-xs font-semibold line-clamp-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
+                  {nextLesson.title.split(":").pop()?.trim()}
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Embedded Notes */}
-        <SidebarSection 
-          title="Notes" 
-          id="notes" 
-          defaultOpen={true}
-          rightElement={
-            <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-[var(--muted-foreground)]">
-              {status === "saving" ? (
-                <><LoaderCircle className="size-3 animate-spin" /> Saving</>
-              ) : status === "saved" ? (
-                <><Check className="size-3 text-emerald-600" /> Saved</>
-              ) : status === "error" ? (
-                "Error"
-              ) : (
-                <><Save className="size-3" /> Unsaved</>
-              )}
-            </span>
-          }
-        >
-          <textarea
-            value={content}
-            onChange={handleNoteChange}
-            placeholder="Type your markdown notes here..."
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 font-mono text-[11px] leading-5 outline-none transition-shadow focus:border-[var(--primary)] resize-y min-h-[100px] h-[150px] max-h-[400px]"
-          />
-        </SidebarSection>
+        {/* Quick Actions (Always visible, primary tools) */}
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={() => toast.info("Ask AI is coming soon!")}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] p-3 text-xs font-bold text-[var(--primary-foreground)] shadow-sm hover:opacity-90 transition-opacity"
+          >
+            <Sparkles className="size-4" />
+            Ask AI
+          </button>
+          
+          <button
+            onClick={toggleBookmark}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold shadow-sm transition-colors",
+              isBookmarked 
+                ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-500" 
+                : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)] text-[var(--foreground)]"
+            )}
+          >
+            <Bookmark className={cn("size-4", isBookmarked && "fill-current")} />
+            {isBookmarked ? "Lesson Bookmarked" : "Bookmark Lesson"}
+          </button>
+        </div>
 
-        <hr className="border-[var(--border)]" />
+        {/* Expandable Notes Card */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 flex flex-col transition-colors">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)] flex items-center gap-1.5">
+              📝 My Notes
+            </h3>
+            <button 
+              onClick={() => setIsNotesOpen(!isNotesOpen)} 
+              className="text-[10px] font-bold text-[var(--primary)] hover:underline"
+            >
+              {isNotesOpen ? "Close Notes" : "Open Notes"}
+            </button>
+          </div>
+          
+          <AnimatePresence>
+            {isNotesOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="pt-3 space-y-2">
+                  <div className="flex items-center justify-end">
+                    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-[var(--muted-foreground)]">
+                      {status === "saving" ? (
+                        <><LoaderCircle className="size-3 animate-spin" /> Saving</>
+                      ) : status === "saved" ? (
+                        <><Check className="size-3 text-emerald-600" /> Saved</>
+                      ) : status === "error" ? (
+                        "Error"
+                      ) : (
+                        <><Save className="size-3" /> Unsaved</>
+                      )}
+                    </span>
+                  </div>
+                  <textarea
+                    value={content}
+                    onChange={handleNoteChange}
+                    placeholder="Type your markdown notes here..."
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 font-mono text-[11px] leading-5 outline-none transition-shadow focus:ring-2 focus:ring-[var(--primary)] resize-y min-h-[150px]"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-        {/* Quick Resources */}
-        <SidebarSection title="Quick Resources" id="resources" defaultOpen={false}>
-          <div className="space-y-1">
+        {/* Quick Resources Card */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">⭐ Quick Resources</h3>
+          
+          <div className="space-y-2">
             {quickResources.map(res => {
               const Icon = iconByType[res.type] || Link2;
               const url = res.filePath || res.url;
+              const isFree = ["website", "youtube", "documentation", "blog"].includes(res.type);
               return (
-                <a key={res._id} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-md p-1.5 text-xs font-semibold hover:bg-[var(--muted)] transition-colors">
-                  <Icon className="size-3.5 text-[var(--muted-foreground)] shrink-0" />
-                  <span className="line-clamp-1 min-w-0 flex-1">{res.title}</span>
+                <a key={res._id} href={url} target="_blank" rel="noreferrer" className="group flex items-start gap-2.5 rounded-lg border border-transparent p-2 text-xs font-semibold hover:border-[var(--border)] hover:bg-[var(--background)] transition-colors">
+                  <Icon className="mt-0.5 size-3.5 text-[var(--muted-foreground)] shrink-0" />
+                  <div className="flex flex-col min-w-0 flex-1 gap-1">
+                    <span className="line-clamp-2 leading-snug group-hover:text-[var(--primary)] transition-colors">{res.title}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold uppercase text-[var(--muted-foreground)]">{res.type}</span>
+                      {isFree && <span className="rounded bg-emerald-100 dark:bg-emerald-950/40 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Free</span>}
+                    </div>
+                  </div>
                 </a>
               )
             })}
             {quickResources.length === 0 && (
-              <p className="text-xs text-[var(--muted-foreground)] px-1.5 py-1">No resources yet.</p>
+              <p className="text-xs text-[var(--muted-foreground)] px-2 py-1">No resources yet.</p>
             )}
           </div>
 
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 pt-2 border-t border-[var(--border)] mt-3">
+            <button
+              onClick={onOpenResources}
+              className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-2 text-[10px] font-bold text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors text-center"
+            >
+              View All
+            </button>
             <button
               onClick={() => {
                 onOpenResources();
@@ -266,44 +272,13 @@ export function LearningHub({
                   if (form) form.scrollIntoView({ behavior: 'smooth' });
                 }, 100);
               }}
-              className="flex-1 rounded-md bg-[var(--primary)] px-2.5 py-1.5 text-[10px] font-bold text-[var(--primary-foreground)] hover:opacity-90 transition-opacity text-center"
+              className="flex-1 rounded-lg bg-[var(--primary)] px-2.5 py-2 text-[10px] font-bold text-[var(--primary-foreground)] shadow-sm hover:opacity-90 transition-opacity text-center"
             >
               Add Resource
             </button>
-            <button
-              onClick={onOpenResources}
-              className="flex-1 rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-[10px] font-bold text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors text-center"
-            >
-              View All
-            </button>
           </div>
-        </SidebarSection>
+        </div>
 
-        <hr className="border-[var(--border)]" />
-
-        {/* Tools & Bookmarks */}
-        <SidebarSection title="Quick Actions" id="actions" defaultOpen={false}>
-          <div className="space-y-1">
-            <button
-              onClick={() => toast.info("Ask AI is coming soon!")}
-              className="flex w-full items-center gap-2 rounded-md p-1.5 text-xs font-bold hover:bg-[var(--muted)] transition-colors"
-            >
-              <Sparkles className="size-3.5 text-[var(--primary)]" />
-              Ask AI
-            </button>
-            
-            <button
-              onClick={toggleBookmark}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-md p-1.5 text-xs font-bold transition-colors",
-                isBookmarked ? "text-amber-600 bg-amber-50 dark:bg-amber-950/20" : "hover:bg-[var(--muted)]"
-              )}
-            >
-              <Bookmark className={cn("size-3.5", isBookmarked && "fill-current")} />
-              {isBookmarked ? "Bookmarked" : "Bookmark Lesson"}
-            </button>
-          </div>
-        </SidebarSection>
       </div>
     </aside>
   );
