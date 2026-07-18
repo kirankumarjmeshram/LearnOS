@@ -1,6 +1,7 @@
 import "server-only";
 
 import { GEMINI_MODEL, getGeminiClient } from "@/services/gemini/client";
+import { handleGeminiError } from "@/services/gemini/error-handler";
 import { parseRoadmapJson } from "@/services/gemini/json-parser";
 import { buildRoadmapPrompt } from "@/services/gemini/prompt-builder";
 
@@ -19,10 +20,17 @@ export async function generateRoadmap(onboarding) {
       });
       return parseRoadmapJson(response.text);
     } catch (error) {
-      lastError = error;
+      lastError = handleGeminiError(error);
+      
+      if (!lastError.isTransient) {
+        throw new Error(lastError.message);
+      }
+      
+      if (lastError.retryDelay && attempt < MAX_ATTEMPTS) {
+        await new Promise((res) => setTimeout(res, lastError.retryDelay * 1000));
+      }
     }
   }
 
-  const detail = lastError instanceof Error ? lastError.message : "Unknown Gemini error";
-  throw new Error(`Unable to generate a valid roadmap after ${MAX_ATTEMPTS} attempts: ${detail}`);
+  throw new Error(lastError?.message || "Unable to generate a valid roadmap.");
 }

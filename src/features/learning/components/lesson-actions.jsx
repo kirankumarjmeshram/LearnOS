@@ -11,11 +11,7 @@ export function LessonActions({
   previousLessonId,
   nextLessonId,
   isCompleted,
-  isFirstStep,
-  isLastStep,
-  onPrevStep,
-  onNextStep,
-  nextStepLabel,
+  isLastInPhase,
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,53 +39,52 @@ export function LessonActions({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border)] pt-8">
       <div>
-        {!isFirstStep ? (
-          <button
-            type="button"
-            onClick={onPrevStep}
-            className="inline-flex items-center gap-2 rounded-xl border bg-[var(--card)] px-4 py-2.5 text-sm font-semibold hover:bg-[var(--muted)]"
-          >
-            <ChevronLeft className="size-4" />
-            Previous
-          </button>
-        ) : previousLessonId ? (
+        {previousLessonId ? (
           <Link
             href={`/lesson/${previousLessonId}`}
-            className="inline-flex items-center gap-2 rounded-xl border bg-[var(--card)] px-4 py-2.5 text-sm font-semibold hover:bg-[var(--muted)]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-sm font-semibold hover:bg-[var(--muted)] transition-colors"
           >
             <ChevronLeft className="size-4" />
-            Prev Lesson
+            Previous Lesson
           </Link>
         ) : (
           <div /> /* spacer */
         )}
       </div>
 
-      <div className="flex gap-3">
-        {isLastStep ? (
+      <div className="flex gap-4">
+        {nextLessonId ? (
           <button
             type="button"
             onClick={markComplete}
             disabled={isSubmitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isSubmitting ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : isCompleted ? (
+              <CheckCircle2 className="size-4" />
+            ) : null}
+            {isCompleted 
+              ? (isLastInPhase ? "Next Module" : "Next Lesson") 
+              : (isLastInPhase ? "Finish Module 🎉" : "Next Lesson")}
+            <ChevronRight className="size-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={markComplete}
+            disabled={isCompleted || isSubmitting}
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isSubmitting ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <CheckCircle2 className="size-4" />
             )}
-            {isCompleted ? (nextLessonId ? "Next Lesson" : "Completed ✓") : "Mark Complete"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onNextStep}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90"
-          >
-            Next: {nextStepLabel}
-            <ChevronRight className="size-4" />
+            {isCompleted ? "Course Completed 🎉" : "Finish Course 🎉"}
           </button>
         )}
       </div>

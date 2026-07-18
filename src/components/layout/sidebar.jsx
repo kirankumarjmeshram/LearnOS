@@ -27,8 +27,8 @@ const items = [
 export function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
 
-  // Hide the workspace sidebar entirely on lesson pages — CourseSidebar takes over
-  if (pathname?.startsWith("/lesson/")) return null;
+  // Hide the workspace sidebar entirely on lesson and onboarding pages
+  if (pathname?.startsWith("/lesson/") || pathname === "/onboarding") return null;
 
   return (
     <>

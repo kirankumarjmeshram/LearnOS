@@ -12,9 +12,11 @@ import {
   Trash2,
   Upload,
   Video,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const resourceTypes = [
   "youtube",
@@ -75,7 +77,7 @@ function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
   const linkHref = resource.filePath || resource.url || "#";
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-[var(--card)] p-4 transition-all hover:border-[var(--primary)] hover:shadow-sm max-h-[140px] h-full">
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 transition-all hover:border-[var(--primary)] hover:shadow-sm max-h-[140px] h-full">
       <div className="flex gap-3 min-h-0">
         {/* Thumbnail or Icon */}
         <div className="shrink-0">
@@ -107,7 +109,7 @@ function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
             href={linkHref}
             target="_blank"
             rel="noreferrer"
-            className="font-semibold text-sm leading-tight line-clamp-2 hover:text-[var(--primary)] transition-colors"
+            className="font-bold text-sm leading-tight line-clamp-2 hover:text-[var(--primary)] transition-colors"
           >
             {resource.title}
           </a>
@@ -118,9 +120,9 @@ function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t mt-3">
-         <a href={linkHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:underline">
-            Open Resource <ExternalLink className="size-3.5" />
+      <div className="flex items-center justify-between pt-3 border-t border-[var(--border)] mt-3">
+         <a href={linkHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:underline">
+            Open <ExternalLink className="size-3.5" />
          </a>
         
         {canEdit && (
@@ -135,7 +137,7 @@ function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
             <button
               type="button"
               onClick={() => onDelete(resource._id)}
-              className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-red-50 hover:text-red-600"
+              className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
             >
               <Trash2 className="size-3.5" />
             </button>
@@ -146,11 +148,13 @@ function ResourceCard({ resource, canEdit, onEdit, onDelete }) {
   );
 }
 
-export function LessonResources({ lessonId, aiResources, initialUserResources, globalResources = [] }) {
+export function ResourcesDrawer({ isOpen, onClose, lessonId, aiResources, initialUserResources, globalResources = [] }) {
   const [userResources, setUserResources] = useState(initialUserResources);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  if (!isOpen) return null;
 
   // Sort AI resources: Video → Reading → Docs → Practice → GitHub → Other
   const sortedAiResources = [...aiResources].sort(
@@ -212,109 +216,119 @@ export function LessonResources({ lessonId, aiResources, initialUserResources, g
   const allUserResources = [...globalResources, ...userResources];
 
   return (
-    <div className="space-y-5">
-      {/* ── My Resources (user-added & global) ── */}
-      <section className="rounded-2xl border bg-[var(--card)] p-6">
-        <h2 className="text-xl font-semibold">⭐ Your Resources</h2>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-          Saved links and matching resources from your library.
-        </p>
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Drawer */}
+      <div className="relative flex w-full max-w-md flex-col bg-[var(--card)] shadow-2xl h-full transform transition-transform duration-300">
+        <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
+          <h2 className="text-lg font-bold">Resources</h2>
+          <button onClick={onClose} className="rounded-lg p-2 hover:bg-[var(--muted)] transition-colors">
+            <X className="size-4" />
+          </button>
+        </div>
 
-        {allUserResources.length > 0 ? (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            {allUserResources.map((resource) => (
-              <ResourceCard
-                key={resource._id}
-                resource={resource}
-                canEdit={!resource.visibility} // only lesson-specific resources can be edited here
-                onEdit={!resource.visibility ? editResource : undefined}
-                onDelete={!resource.visibility ? deleteResource : undefined}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-5 rounded-xl border border-dashed p-4 text-sm text-[var(--muted-foreground)]">
-            No personal resources yet. Add a link below to keep it with this lesson.
-          </p>
-        )}
-
-        {/* Add / Edit form */}
-        <form onSubmit={saveResource} className="mt-6 grid gap-3 border-t pt-5 sm:grid-cols-2">
-          <input
-            required
-            name="title"
-            value={form.title}
-            onChange={changeForm}
-            placeholder="Resource title"
-            className="rounded-xl border bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)]"
-          />
-          <select
-            name="type"
-            value={form.type}
-            onChange={changeForm}
-            className="rounded-xl border bg-[var(--background)] px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)]"
-          >
-            {resourceTypes.map((type) => (
-              <option key={type} value={type}>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </option>
-            ))}
-          </select>
-          <input
-            required
-            name="url"
-            type="url"
-            value={form.url}
-            onChange={changeForm}
-            placeholder="https://..."
-            className="rounded-xl border bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)] sm:col-span-2"
-          />
-          <input
-            name="description"
-            value={form.description}
-            onChange={changeForm}
-            placeholder="Optional description"
-            className="rounded-xl border bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--ring)] sm:col-span-2"
-          />
-          <div className="flex gap-2 sm:col-span-2">
-            <button
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] disabled:opacity-70"
-            >
-              <Plus className="size-4" />
-              {editingId ? "Update Resource" : "Add Resource"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-xl border px-4 py-2.5 text-sm font-semibold"
-              >
-                Cancel
-              </button>
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          
+          {/* ── Curated Learning Content (AI) ── */}
+          <section>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Recommended</h3>
+            {sortedAiResources.length > 0 ? (
+              <div className="mt-4 grid gap-3">
+                {sortedAiResources.map((resource) => (
+                  <ResourceCard key={resource._id} resource={resource} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl border border-dashed border-[var(--border)] p-4 text-xs font-medium text-[var(--muted-foreground)] text-center">
+                No curated resources available.
+              </p>
             )}
-          </div>
-        </form>
-      </section>
+          </section>
 
-      {/* ── Curated Learning Content (AI) ── */}
-      <section className="rounded-2xl border bg-[var(--card)] p-6">
-        <h2 className="text-xl font-semibold">Recommended Resources</h2>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-          Curated videos, official documentation, and practice resources for this lesson.
-        </p>
-        {sortedAiResources.length > 0 ? (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            {sortedAiResources.map((resource) => (
-              <ResourceCard key={resource._id} resource={resource} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-5 rounded-xl border border-dashed p-4 text-sm text-[var(--muted-foreground)]">
-            No curated resources yet. They will appear here once generated.
-          </p>
-        )}
-      </section>
+          <hr className="border-[var(--border)]" />
+
+          {/* ── My Resources (user-added & global) ── */}
+          <section>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Your Resources</h3>
+            
+            {allUserResources.length > 0 ? (
+              <div className="mt-4 grid gap-3">
+                {allUserResources.map((resource) => (
+                  <ResourceCard
+                    key={resource._id}
+                    resource={resource}
+                    canEdit={!resource.visibility} // only lesson-specific resources can be edited here
+                    onEdit={!resource.visibility ? editResource : undefined}
+                    onDelete={!resource.visibility ? deleteResource : undefined}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl border border-dashed border-[var(--border)] p-4 text-xs font-medium text-[var(--muted-foreground)] text-center">
+                No personal resources added yet.
+              </p>
+            )}
+
+            {/* Add / Edit form */}
+            <form onSubmit={saveResource} className="mt-6 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4">
+              <h4 className="text-xs font-bold text-[var(--foreground)]">{editingId ? "Edit Resource" : "Add Resource"}</h4>
+              <input
+                required
+                name="title"
+                value={form.title}
+                onChange={changeForm}
+                placeholder="Title"
+                className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              />
+              <select
+                name="type"
+                value={form.type}
+                onChange={changeForm}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              >
+                {resourceTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <input
+                required
+                name="url"
+                type="url"
+                value={form.url}
+                onChange={changeForm}
+                placeholder="URL (https://...)"
+                className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  disabled={isSaving}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--primary)] py-2 text-xs font-bold text-[var(--primary-foreground)] disabled:opacity-70 transition-opacity"
+                >
+                  <Plus className="size-3.5" />
+                  {editingId ? "Save" : "Add"}
+                </button>
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-bold transition-colors hover:bg-[var(--muted)]"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </section>
+
+        </div>
+      </div>
     </div>
   );
 }

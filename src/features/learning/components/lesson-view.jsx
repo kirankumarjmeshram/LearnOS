@@ -1,97 +1,50 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   BookOpen,
-  Check,
   CheckSquare,
+  ChevronRight,
   Clock3,
   ListChecks,
+  Maximize,
+  Minimize,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { CourseSidebar } from "./course-sidebar";
-import { RightProgressPanel } from "./right-progress-panel";
+import { LearningHub } from "./right-progress-panel";
 import { LessonContent } from "./lesson-content";
-import { LessonResources } from "./lesson-resources";
-import { LessonNotes } from "./lesson-notes";
 import { LessonActions } from "./lesson-actions";
+import { ResourcesDrawer } from "./lesson-resources";
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-const GuidedStepper = memo(function GuidedStepper({ steps, activeIndex, onStepClick }) {
-  return (
-    <div className="sticky top-0 z-20 border-b bg-[var(--background)]/95 px-5 py-4 backdrop-blur-sm sm:px-8">
-      <nav aria-label="Progress" className="mx-auto max-w-3xl">
-        <ol role="list" className="flex items-center justify-between">
-          {steps.map((step, index) => {
-            const isCompleted = index < activeIndex;
-            const isActive = index === activeIndex;
-            const isLast = index === steps.length - 1;
-            
-            return (
-              <li key={step.id} className={cn("relative flex items-center", !isLast && "flex-1")}>
-                {/* Connector line */}
-                {!isLast && (
-                  <div className="absolute top-1/2 w-full -translate-y-1/2 left-4 px-2" aria-hidden="true">
-                    <div className={cn("h-0.5 w-full rounded-full", isCompleted ? "bg-[var(--primary)]" : "bg-[var(--muted)]")} />
-                  </div>
-                )}
-                
-                {/* Step Circle */}
-                <button
-                  type="button"
-                  onClick={() => onStepClick(index)}
-                  disabled={index > activeIndex && !isCompleted}
-                  className="relative flex flex-col items-center group bg-[var(--background)] z-10"
-                >
-                  <div className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                    isCompleted ? "bg-[var(--primary)] text-[var(--primary-foreground)]" 
-                      : isActive ? "border-2 border-[var(--primary)] bg-[var(--background)] text-[var(--primary)]"
-                      : "border-2 border-[var(--muted)] bg-[var(--background)] text-[var(--muted-foreground)] group-hover:border-[var(--muted-foreground)]"
-                  )}>
-                    {isCompleted ? (
-                      <Check className="size-4" />
-                    ) : (
-                      <span className="text-xs font-bold">{index + 1}</span>
-                    )}
-                  </div>
-                  <span className={cn(
-                    "absolute -bottom-6 text-[10px] sm:text-xs font-semibold whitespace-nowrap",
-                    isActive ? "text-[var(--primary)]" : isCompleted ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
-                  )}>
-                    {step.label}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
-    </div>
-  );
-});
-
-const LessonMeta = memo(function LessonMeta({ estimatedDuration, status }) {
+const LessonMeta = memo(function LessonMeta({ estimatedDuration, status, difficulty }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-xl border bg-[var(--card)] px-3 py-1.5 text-xs font-semibold">
-        <Clock3 className="size-3.5 text-[var(--primary)]" />
-        {estimatedDuration}
-      </span>
-      <span className="inline-flex items-center gap-1.5 rounded-xl border bg-[var(--card)] px-3 py-1.5 text-xs font-semibold">
-        <CheckSquare className="size-3.5 text-[var(--primary)]" />
+      {estimatedDuration && (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-1 text-xs font-semibold text-[var(--muted-foreground)]">
+          <Clock3 className="size-3.5" />
+          {estimatedDuration}
+        </span>
+      )}
+      {difficulty && (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-1 text-xs font-semibold text-[var(--muted-foreground)] capitalize">
+          {difficulty}
+        </span>
+      )}
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+        <CheckSquare className="size-3.5" />
         {status === "completed" ? "Completed" : "In Progress"}
       </span>
     </div>
   );
 });
-
-// ─── Main component ──────────────────────────────────────────────────────────
 
 export function LessonView({
   lesson,
@@ -108,25 +61,60 @@ export function LessonView({
   aiContent,
 }) {
   const router = useRouter();
+  const [isResourcesDrawerOpen, setIsResourcesDrawerOpen] = useState(false);
 
-  // Dynamic steps based on lesson content
-  const STEPS = useMemo(() => {
-    const s = [
-      { id: "overview", label: "Overview" },
-      { id: "learn", label: "Learn" },
-    ];
-    if (lesson.practice) s.push({ id: "practice", label: "Practice" });
-    s.push({ id: "resources", label: "Resources" });
-    if (lesson.project) s.push({ id: "project", label: "Project" });
-    s.push({ id: "notes", label: "Notes" });
-    return s;
-  }, [lesson.practice, lesson.project]);
+  // Study Mode State
+  const [isLeftOpen, setIsLeftOpen] = useState(true);
+  const [isRightOpen, setIsRightOpen] = useState(true);
 
-  const [activeIndex, setActiveIndex] = useState(0);
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("learnos:study-mode");
+      if (stored) {
+        const { left, right } = JSON.parse(stored);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsLeftOpen(left ?? true);
+        setIsRightOpen(right ?? true);
+      }
+    } catch {}
+  }, []);
 
-  const activeStep = STEPS[activeIndex];
+  const toggleLeft = () => {
+    setIsLeftOpen((p) => {
+      const next = !p;
+      localStorage.setItem("learnos:study-mode", JSON.stringify({ left: next, right: isRightOpen }));
+      return next;
+    });
+  };
 
-  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  const toggleRight = () => {
+    setIsRightOpen((p) => {
+      const next = !p;
+      localStorage.setItem("learnos:study-mode", JSON.stringify({ left: isLeftOpen, right: next }));
+      return next;
+    });
+  };
+
+  const toggleStudyMode = () => {
+    const isStudyMode = !isLeftOpen && !isRightOpen;
+    const nextState = !isStudyMode; // if currently study mode, turn it off (open both). If not, turn it on (close both)
+    setIsLeftOpen(nextState);
+    setIsRightOpen(nextState);
+    localStorage.setItem("learnos:study-mode", JSON.stringify({ left: nextState, right: nextState }));
+  };
+
+  const isStudyMode = !isLeftOpen && !isRightOpen;
+
+  // Derive phase info
+  const currentPhase = phases.find((p) => p._id === lesson.phaseId) ?? phases[0];
+  const isLastInPhase = nextLesson?.phaseId !== lesson.phaseId;
+
+  // Remove module prefix from lesson title (e.g. "System Design: Scalability" -> "Scalability")
+  const strippedTitle = lesson.title.includes(":") 
+    ? lesson.title.split(":").slice(1).join(":").trim() 
+    : lesson.title;
+
+  // Keyboard navigation
   useEffect(() => {
     const onKeyDown = (e) => {
       const el = document.activeElement;
@@ -139,103 +127,118 @@ export function LessonView({
       )
         return;
 
-      if (e.key === "ArrowLeft") {
-        if (activeIndex > 0) {
-          setActiveIndex(activeIndex - 1);
-        } else if (previousLesson?._id) {
-          router.push(`/lesson/${previousLesson._id}`);
-        }
-      } else if (e.key === "ArrowRight") {
-        if (activeIndex < STEPS.length - 1) {
-          setActiveIndex(activeIndex + 1);
-        } else if (nextLesson?._id) {
-          router.push(`/lesson/${nextLesson._id}`);
-        }
+      if (e.key === "ArrowLeft" && previousLesson?._id) {
+        router.push(`/lesson/${previousLesson._id}`);
+      } else if (e.key === "ArrowRight" && nextLesson?._id) {
+        router.push(`/lesson/${nextLesson._id}`);
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [previousLesson, nextLesson, router, activeIndex, STEPS.length]);
-
-  // Scroll to top when step changes
-  useEffect(() => {
-    const container = document.getElementById("lesson-scroll-container");
-    if (container) {
-      container.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [activeIndex]);
-
-  // ── Derived state for progress panel ──────────────────────────────────────
-  const currentPhase = phases.find((p) => p._id === lesson.phaseId) ?? phases[0];
-  const phaseLessons = lessons.filter((l) => l.phaseId === lesson.phaseId);
-  const completedPhaseLessons = phaseLessons.filter((l) => l.status === "completed").length;
+  }, [previousLesson, nextLesson, router]);
 
   return (
     <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-[var(--background)]">
       {/* ── Left: Course Sidebar ── */}
-      <CourseSidebar
-        roadmapGoal={roadmap?.goal ?? ""}
-        phases={phases}
-        lessons={lessons}
-        currentLessonId={lesson._id}
-      />
-
-      {/* ── Center: Scrollable lesson content ── */}
-      <div
-        id="lesson-scroll-container"
-        className="flex min-w-0 flex-1 flex-col overflow-y-auto"
-      >
-        <GuidedStepper
-          steps={STEPS}
-          activeIndex={activeIndex}
-          onStepClick={(index) => setActiveIndex(index)}
+      {isLeftOpen && (
+        <CourseSidebar
+          roadmapGoal={roadmap?.goal ?? "Course"}
+          phases={phases}
+          lessons={lessons}
+          currentLessonId={lesson._id}
         />
+      )}
 
-        {/* Lesson body — constrained reading width */}
-        <div className="mx-auto w-full max-w-[860px] px-5 pb-24 pt-10 sm:px-8">
+      {/* ── Center: Scrollable Continuous Lesson Content ── */}
+      <div id="lesson-scroll-container" className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+        {/* Top Action Bar (Study Mode Controls) */}
+        <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/90 px-4 backdrop-blur-md lg:px-6">
+          <button
+            onClick={toggleLeft}
+            className="inline-flex items-center gap-2 rounded-lg p-2 text-xs font-semibold text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          >
+            {isLeftOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+            <span className="hidden sm:inline">{isLeftOpen ? "Hide Navigation" : "Navigation"}</span>
+          </button>
+
+          <button
+            onClick={toggleStudyMode}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors",
+              isStudyMode
+                ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+            )}
+          >
+            {isStudyMode ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+            Study Mode
+          </button>
+
+          <button
+            onClick={toggleRight}
+            className="inline-flex items-center gap-2 rounded-lg p-2 text-xs font-semibold text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          >
+            <span className="hidden sm:inline">{isRightOpen ? "Hide Hub" : "Learning Hub"}</span>
+            {isRightOpen ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+          </button>
+        </div>
+
+        <div
+          className={cn(
+            "mx-auto w-full px-6 pb-32 pt-12 transition-all duration-300 lg:px-12",
+            isStudyMode ? "max-w-[1000px]" : "max-w-[900px]"
+          )}
+        >
           
-          {/* STEP: Overview */}
-          {activeStep.id === "overview" && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <Link
-                href={`/roadmap?id=${lesson.roadmapId}`}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
-              >
-                <ArrowLeft className="size-4" />
-                Back to roadmap
+          {/* HEADER */}
+          <div className="space-y-6 mb-12">
+            {/* Breadcrumbs */}
+            <nav className="flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)]">
+              <Link href={`/roadmap?id=${lesson.roadmapId}`} className="hover:text-[var(--foreground)] transition-colors line-clamp-1">
+                {roadmap?.goal || "Roadmap"}
               </Link>
+              <ChevronRight className="size-3.5 shrink-0" />
+              <span className="line-clamp-1">{currentPhase.title}</span>
+              <ChevronRight className="size-3.5 shrink-0" />
+              <span className="text-[var(--foreground)] line-clamp-1">{strippedTitle}</span>
+            </nav>
 
-              <div className="space-y-4">
-                <p className="text-sm font-bold uppercase tracking-widest text-[var(--primary)]">
-                  Lesson {lesson.order} &middot; Week {lesson.week}
-                </p>
-                <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-                  {lesson.title}
-                </h1>
-                <p className="text-lg leading-8 text-[var(--muted-foreground)]">
-                  {lesson.description}
-                </p>
-              </div>
+            <div className="space-y-4">
+              <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-[var(--foreground)]">
+                {strippedTitle}
+              </h1>
+              <p className="text-lg leading-relaxed text-[var(--muted-foreground)]">
+                {lesson.description}
+              </p>
+            </div>
 
-              <LessonMeta
-                estimatedDuration={lesson.estimatedDuration}
-                status={lesson.status}
-              />
+            <LessonMeta
+              estimatedDuration={lesson.estimatedDuration}
+              status={lesson.status}
+              difficulty={lesson.difficulty}
+            />
+          </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 mt-8">
+          <hr className="my-12 border-[var(--border)]" />
+
+          {/* OVERVIEW SECTION (Objectives & Topics) */}
+          {(lesson.learningObjectives?.length > 0 || lesson.topics?.length > 0) && (
+            <section className="mb-12 space-y-6">
+              <h2 className="text-2xl font-bold tracking-tight">Overview</h2>
+              <div className="grid gap-6 sm:grid-cols-2">
                 {lesson.learningObjectives?.length > 0 && (
                   <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
-                      <span className="grid size-8 place-items-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
+                      <span className="grid size-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                         <ListChecks className="size-4" />
                       </span>
-                      <h3 className="text-base font-semibold">Objectives</h3>
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Objectives</h3>
                     </div>
                     <ul className="space-y-3">
                       {lesson.learningObjectives.map((obj, i) => (
-                        <li key={i} className="flex items-start gap-3 text-sm leading-6 text-[var(--muted-foreground)]">
-                          <Check className="mt-1 size-4 shrink-0 text-[var(--primary)]" />
+                        <li key={i} className="flex items-start gap-3 text-sm leading-6 text-[var(--foreground)]">
+                          <div className="mt-2 size-1.5 shrink-0 rounded-full bg-emerald-500" />
                           {obj}
                         </li>
                       ))}
@@ -246,14 +249,14 @@ export function LessonView({
                 {lesson.topics?.length > 0 && (
                   <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
-                      <span className="grid size-8 place-items-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
+                      <span className="grid size-8 place-items-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                         <BookOpen className="size-4" />
                       </span>
-                      <h3 className="text-base font-semibold">Topics</h3>
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Topics</h3>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {lesson.topics.map((topic, i) => (
-                        <span key={i} className="rounded-lg bg-[var(--secondary)] px-3 py-1.5 text-xs font-bold text-[var(--secondary-foreground)]">
+                        <span key={i} className="rounded-lg bg-[var(--secondary)] px-3 py-1.5 text-xs font-semibold text-[var(--secondary-foreground)]">
                           {topic}
                         </span>
                       ))}
@@ -261,94 +264,61 @@ export function LessonView({
                   </div>
                 )}
               </div>
-            </div>
+              <hr className="my-12 border-[var(--border)]" />
+            </section>
           )}
 
-          {/* STEP: Learn */}
-          {activeStep.id === "learn" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {aiContent ? (
-                <LessonContent content={aiContent} />
-              ) : (
-                <div className="rounded-2xl border border-dashed bg-[var(--card)] p-12 text-center">
-                  <p className="text-base font-medium text-[var(--muted-foreground)]">
-                    Lesson content is being prepared. Check back shortly.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* STEP: Practice */}
-          {activeStep.id === "practice" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-2xl font-bold tracking-tight">Hands-on Practice</h2>
-              <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
-                <p className="text-base leading-8 text-[var(--foreground)]">
-                  {lesson.practice}
+          {/* LEARN SECTION (AI Content) */}
+          <section className="mb-12">
+            {aiContent ? (
+              <LessonContent content={aiContent} />
+            ) : (
+              <div className="rounded-2xl border border-dashed bg-[var(--card)] p-12 text-center">
+                <p className="text-base font-medium text-[var(--muted-foreground)]">
+                  Lesson content is being prepared.
                 </p>
               </div>
-            </div>
-          )}
+            )}
+          </section>
 
-          {/* STEP: Resources */}
-          {activeStep.id === "resources" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <LessonResources
-                lessonId={lesson._id}
-                aiResources={aiResources}
-                initialUserResources={initialUserResources}
-                globalResources={globalResources}
-              />
-            </div>
-          )}
 
-          {/* STEP: Project */}
-          {activeStep.id === "project" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-2xl font-bold tracking-tight">Mini Project</h2>
-              <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm">
-                <p className="text-base leading-8 text-[var(--foreground)]">
-                  {lesson.project}
-                </p>
-              </div>
-            </div>
-          )}
 
-          {/* STEP: Notes */}
-          {activeStep.id === "notes" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-2xl font-bold tracking-tight">My Notes</h2>
-              <LessonNotes lessonId={lesson._id} initialContent={noteContent} />
-            </div>
-          )}
-
-          {/* ── Stepper Navigation ── */}
-          <div className="mt-16 border-t pt-8">
+          {/* NEXT / PREV ACTIONS */}
+          <div className="mt-16">
             <LessonActions
               lessonId={lesson._id}
               previousLessonId={previousLesson?._id}
               nextLessonId={nextLesson?._id}
               isCompleted={lesson.status === "completed"}
-              
-              // New stepper props
-              isFirstStep={activeIndex === 0}
-              isLastStep={activeIndex === STEPS.length - 1}
-              onPrevStep={() => setActiveIndex(activeIndex - 1)}
-              onNextStep={() => setActiveIndex(activeIndex + 1)}
-              nextStepLabel={activeIndex < STEPS.length - 1 ? STEPS[activeIndex + 1].label : null}
+              isLastInPhase={isLastInPhase}
             />
           </div>
         </div>
       </div>
 
-      {/* ── Right: Progress Panel ── */}
-      <RightProgressPanel
-        currentPhaseName={currentPhase?.title}
-        completedLessons={completedPhaseLessons}
-        totalLessons={phaseLessons.length}
-        nextLessonId={nextLesson?._id}
+      {/* ── Right: Learning Hub ── */}
+      {isRightOpen && (
+        <LearningHub
+          lesson={lesson}
+          currentPhaseName={currentPhase?.title}
+          phases={phases}
+          lessons={lessons}
+          aiResources={aiResources}
+          initialUserResources={initialUserResources}
+          globalResources={globalResources}
+          noteContent={noteContent}
+          onOpenResources={() => setIsResourcesDrawerOpen(true)}
+        />
+      )}
+
+      {/* Resources Drawer */}
+      <ResourcesDrawer 
+        isOpen={isResourcesDrawerOpen}
+        onClose={() => setIsResourcesDrawerOpen(false)}
         lessonId={lesson._id}
+        aiResources={aiResources}
+        initialUserResources={initialUserResources}
+        globalResources={globalResources}
       />
     </div>
   );

@@ -177,22 +177,44 @@ export const LessonContent = memo(function LessonContent({ content }) {
         </CollapsibleSection>
       )}
 
-      {/* Code Examples — open by default */}
+      {/* Code Examples — collapsed by default */}
       {content.codeExamples?.length > 0 && (
         <CollapsibleSection
-          title="Code Examples"
+          title={`Code Examples (${content.codeExamples.length})`}
           icon={Code2}
           iconClass="text-[var(--primary)]"
-          defaultOpen
+          defaultOpen={false}
         >
-          <div className="space-y-5">
+          <div className="space-y-4">
             {content.codeExamples.map((ex, i) => (
-              <div key={i}>
-                <p className="mb-2 text-xs font-semibold">{ex.title}</p>
-                <pre className="overflow-x-auto rounded-xl border bg-zinc-950 p-4 font-mono text-xs leading-5 text-zinc-100 dark:bg-zinc-900">
-                  <code>{ex.code}</code>
-                </pre>
-              </div>
+              <CollapsibleSection
+                key={i}
+                title={ex.title}
+                icon={Code2}
+                iconClass="text-[var(--muted-foreground)]"
+                defaultOpen={false}
+              >
+                <div className="group relative">
+                  {/* Language Tab */}
+                  <div className="absolute left-4 top-0 -translate-y-1/2 rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400">
+                    {ex.language || "Code"}
+                  </div>
+                  
+                  {/* Action Stubs */}
+                  <div className="absolute right-2 top-2 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button className="rounded-md bg-zinc-800 px-2.5 py-1 text-[10px] font-bold text-zinc-300 hover:text-white transition-colors">
+                      Copy
+                    </button>
+                    <button className="rounded-md bg-indigo-500/20 px-2.5 py-1 text-[10px] font-bold text-indigo-300 hover:bg-indigo-500/30 transition-colors">
+                      Explain with AI
+                    </button>
+                  </div>
+                  
+                  <pre className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-950 p-4 pt-8 font-mono text-xs leading-5 text-zinc-100 dark:bg-zinc-900">
+                    <code>{ex.code}</code>
+                  </pre>
+                </div>
+              </CollapsibleSection>
             ))}
           </div>
         </CollapsibleSection>

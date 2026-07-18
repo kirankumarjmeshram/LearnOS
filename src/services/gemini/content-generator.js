@@ -5,6 +5,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Lesson } from "@/models/lesson";
 import { GEMINI_MODEL, getGeminiClient } from "@/services/gemini/client";
+import { handleGeminiError } from "@/services/gemini/error-handler";
 
 // ─── Response schema ─────────────────────────────────────────────────────────
 
@@ -97,11 +98,19 @@ async function generateContent(lesson, roadmapGoal) {
       }
       return result.data;
     } catch (error) {
-      lastError = error;
+      lastError = handleGeminiError(error);
+      
+      if (!lastError.isTransient) {
+        throw new Error(lastError.message);
+      }
+      
+      if (lastError.retryDelay && attempt < MAX_ATTEMPTS) {
+        await new Promise((res) => setTimeout(res, lastError.retryDelay * 1000));
+      }
     }
   }
 
-  throw lastError ?? new Error("Content generation failed after all attempts.");
+  throw new Error(lastError?.message || "Content generation failed after all attempts.");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
