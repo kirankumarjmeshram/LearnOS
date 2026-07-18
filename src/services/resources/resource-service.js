@@ -57,7 +57,7 @@ import { GlobalResource } from "@/models/global-resource";
 export async function getLessonResources(clerkId, lessonId) {
   await connectToDatabase();
   const lesson = await getOwnedLesson(clerkId, lessonId);
-  const [aiResources, userResources, allGlobal] = await Promise.all([
+  const [aiResources, legacyUserResources, allGlobal] = await Promise.all([
     ensureAiResources(clerkId, lesson), 
     LessonResource.find({ lessonId: lesson._id, source: "user", clerkId }).sort({ createdAt: -1 }).lean(),
     GlobalResource.find({ 
@@ -66,13 +66,24 @@ export async function getLessonResources(clerkId, lessonId) {
     }).lean()
   ]);
 
-  // Match global resources to lesson topics/title
+  // userResources includes the newly saved GlobalResources for this lesson, and legacy ones
+  const newContextResources = allGlobal.filter(g => g.lessonId?.toString() === lesson._id.toString());
+  const userResources = [...newContextResources, ...legacyUserResources].map(res => ({
+    ...res,
+    description: res.description || res.notes || "", // mapping notes to description for UI
+  })).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // Match global resources to lesson topics/title (excluding ones specifically bound to this lesson)
   const keywords = [lesson.title, ...(lesson.topics || [])].map(k => k.toLowerCase());
   const globalResources = allGlobal.filter(res => {
+    if (res.lessonId?.toString() === lesson._id.toString()) return false;
     const tech = (res.technology || "").toLowerCase();
     const tags = (res.tags || []).map(t => t.toLowerCase());
     return keywords.some(kw => kw.includes(tech) || tech.includes(kw) || tags.some(t => kw.includes(t) || t.includes(kw)));
-  });
+  }).map(res => ({
+    ...res,
+    description: res.description || res.notes || "",
+  }));
 
   return { aiResources, userResources, globalResources };
 }
@@ -80,17 +91,47 @@ export async function getLessonResources(clerkId, lessonId) {
 export async function addUserResource(clerkId, lessonId, resource) {
   await connectToDatabase();
   const lesson = await getOwnedLesson(clerkId, lessonId);
+  const roadmap = await Roadmap.findById(lesson.roadmapId).lean();
+  const phase = await Phase.findById(lesson.phaseId).lean();
+
   const url = new URL(resource.url);
   if (!["http:", "https:"].includes(url.protocol)) throw new Error("Resource URLs must use http or https.");
-  return LessonResource.create({ ...resource, url: url.toString(), clerkId, roadmapId: lesson.roadmapId, phaseId: lesson.phaseId, lessonId: lesson._id, source: "user" });
+  
+  return GlobalResource.create({ 
+    clerkId, 
+    roadmapId: lesson.roadmapId, 
+    phaseId: lesson.phaseId, 
+    lessonId: lesson._id, 
+    roadmapTitle: roadmap?.goal || "Course",
+    phaseTitle: phase?.title || "Module",
+    lessonTitle: lesson.title,
+    savedFrom: "lesson",
+    technology: roadmap?.goal || "General",
+    type: resource.type,
+    title: resource.title,
+    url: url.toString(),
+    notes: resource.description || "",
+    visibility: "roadmap"
+  });
 }
 
 export async function updateUserResource(clerkId, resourceId, resource) {
   await connectToDatabase();
-  const existing = await LessonResource.findOne({ _id: resourceId, clerkId, source: "user" });
-  if (!existing) throw new Error("Resource not found.");
   const url = new URL(resource.url);
   if (!["http:", "https:"].includes(url.protocol)) throw new Error("Resource URLs must use http or https.");
+
+  let existing = await GlobalResource.findOne({ _id: resourceId, clerkId });
+  if (existing) {
+    existing.title = resource.title; 
+    existing.type = resource.type; 
+    existing.url = url.toString(); 
+    existing.notes = resource.description || "";
+    await existing.save();
+    return existing;
+  }
+
+  existing = await LessonResource.findOne({ _id: resourceId, clerkId, source: "user" });
+  if (!existing) throw new Error("Resource not found.");
   existing.title = resource.title; existing.type = resource.type; existing.url = url.toString(); existing.description = resource.description || "";
   await existing.save();
   return existing;
@@ -98,7 +139,10 @@ export async function updateUserResource(clerkId, resourceId, resource) {
 
 export async function deleteUserResource(clerkId, resourceId) {
   await connectToDatabase();
-  const result = await LessonResource.deleteOne({ _id: resourceId, clerkId, source: "user" });
+  let result = await GlobalResource.deleteOne({ _id: resourceId, clerkId });
+  if (!result.deletedCount) {
+    result = await LessonResource.deleteOne({ _id: resourceId, clerkId, source: "user" });
+  }
   if (!result.deletedCount) throw new Error("Resource not found.");
 }
 
