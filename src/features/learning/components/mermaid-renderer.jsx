@@ -8,6 +8,7 @@ mermaid.initialize({
   startOnLoad: false,
   theme: "base",
   useMaxWidth: true, // ensure it scales
+  suppressErrorRendering: true, // Prevent mermaid from appending error SVGs to the DOM
   themeVariables: {
     fontFamily: "inherit",
     primaryColor: "#2563eb",
@@ -27,8 +28,17 @@ export default function MermaidRenderer({ code }) {
 
   useEffect(() => {
     if (!code) return;
+    
+    // Sometimes the AI returns the diagram wrapped in markdown backticks
+    let cleanCode = code.trim();
+    if (cleanCode.startsWith("```mermaid")) {
+      cleanCode = cleanCode.replace(/^```mermaid\n?/, "").replace(/```$/, "").trim();
+    } else if (cleanCode.startsWith("```")) {
+      cleanCode = cleanCode.replace(/^```\n?/, "").replace(/```$/, "").trim();
+    }
+
     const id = `mermaid-${Math.random().toString(36).substring(7)}`;
-    mermaid.render(id, code).then(({ svg }) => {
+    mermaid.render(id, cleanCode).then(({ svg }) => {
       // Strip max-width from the svg directly so it flexes properly if needed, though useMaxWidth helps
       setSvgContent(svg);
       setError(false);
