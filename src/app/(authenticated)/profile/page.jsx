@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { getDashboardRoadmaps } from "@/services/learning-service";
 import { ProfileClient } from "./_components/profile-client";
+import { PageWrapper } from "@/components/layout/page-wrapper";
 
 export const metadata = { title: "Profile" };
 
@@ -38,12 +39,16 @@ export default async function ProfilePage() {
     estimatedHours,
     currentLevel,
     currentGoal: activeRoadmaps.length > 0 ? activeRoadmaps[0].goal : null,
-    continueLessonId: activeRoadmaps.length > 0 ? activeRoadmaps[0].progress?.currentLessonId : null
+    continueLessonId: activeRoadmaps.length > 0 && activeRoadmaps[0].progress?.currentLessonId 
+      ? activeRoadmaps[0].progress.currentLessonId.toString() 
+      : null
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8 animate-in fade-in duration-500">
-      <ProfileClient user={serializedUser} stats={stats} />
-    </div>
+    <PageWrapper>
+      <div className="mx-auto max-w-[1100px] animate-in fade-in duration-500">
+        <ProfileClient user={serializedUser} stats={stats} />
+      </div>
+    </PageWrapper>
   );
 }

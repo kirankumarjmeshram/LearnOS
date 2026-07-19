@@ -48,7 +48,7 @@ export function SettingsClient({ user }) {
   return (
     <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
       {/* Sidebar Navigation */}
-      <nav className="flex md:flex-col gap-1 md:w-64 shrink-0 overflow-x-auto pb-4 md:pb-0 scrollbar-hide">
+      <nav className="flex md:flex-col gap-1 md:w-[280px] shrink-0 overflow-x-auto pb-4 md:pb-0 scrollbar-hide">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -57,7 +57,7 @@ export function SettingsClient({ user }) {
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
+                "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
                 isActive 
                   ? "bg-[var(--primary)]/10 text-[var(--primary)]" 
                   : "text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
@@ -71,7 +71,7 @@ export function SettingsClient({ user }) {
       </nav>
 
       {/* Content Area */}
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 max-w-[760px] min-h-[500px]">
         {activeTab === "general" && <GeneralTab user={user} />}
         {activeTab === "appearance" && <AppearanceTab />}
         {activeTab === "learning" && <LearningTab />}
@@ -91,9 +91,9 @@ function GeneralTab({ user }) {
     : "Unknown";
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-6 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">General</h2>
+        <h2 className="text-lg font-semibold tracking-tight">General</h2>
         <p className="text-sm text-[var(--muted-foreground)]">Manage your basic account information.</p>
       </div>
 
@@ -127,13 +127,13 @@ function AppearanceTab() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-6 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Appearance</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Appearance</h2>
         <p className="text-sm text-[var(--muted-foreground)]">Customize how LearnOS looks on your device.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="flex bg-[var(--card)] border border-[var(--border)] p-1 rounded-2xl w-full sm:w-fit">
         {[
           { id: "light", label: "Light", icon: Sun },
           { id: "dark", label: "Dark", icon: Moon },
@@ -146,26 +146,14 @@ function AppearanceTab() {
               key={t.id}
               onClick={() => setTheme(t.id)}
               className={cn(
-                "flex flex-col items-center gap-3 p-6 rounded-2xl border transition-all hover:shadow-sm",
+                "flex items-center justify-center gap-2 px-6 py-2 rounded-xl text-sm font-medium transition-all",
                 isActive 
-                  ? "border-[var(--primary)] bg-[var(--primary)]/5" 
-                  : "border-[var(--border)] bg-[var(--card)] hover:border-gray-300 dark:hover:border-gray-700"
+                  ? "bg-[var(--primary)] text-white dark:text-black shadow-sm" 
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]"
               )}
             >
-              <div className={cn(
-                "p-3 rounded-full",
-                isActive ? "bg-[var(--primary)]/10 text-[var(--primary)]" : "bg-[var(--secondary)] text-[var(--muted-foreground)]"
-              )}>
-                <Icon className="size-6" />
-              </div>
-              <div className="space-y-1 text-center">
-                <p className="font-semibold text-sm">{t.label}</p>
-              </div>
-              {isActive && (
-                <div className="absolute top-4 right-4 text-[var(--primary)]">
-                  <Check className="size-4" />
-                </div>
-              )}
+              <Icon className="size-4" />
+              {t.label}
             </button>
           );
         })}
@@ -201,33 +189,37 @@ function LearningTab() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-6 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Learning Preferences</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Learning Preferences</h2>
         <p className="text-sm text-[var(--muted-foreground)]">Tailor the AI tutor and curriculum to your style.</p>
       </div>
 
-      <div className="space-y-4">
-        <SelectCard 
+      <div className="rounded-2xl border bg-[var(--card)] shadow-sm divide-y divide-[var(--border)]">
+        <SelectRow 
           title="Difficulty" 
+          description="Baseline complexity of lesson generation."
           options={["Beginner", "Intermediate", "Advanced"]} 
           value={prefs.difficulty} 
           onChange={(v) => updatePref("difficulty", v)} 
         />
-        <SelectCard 
+        <SelectRow 
           title="Learning Pace" 
+          description="How quickly new concepts are introduced."
           options={["Slow", "Normal", "Fast"]} 
           value={prefs.pace} 
           onChange={(v) => updatePref("pace", v)} 
         />
-        <SelectCard 
+        <SelectRow 
           title="Daily Goal" 
-          options={["15 Minutes", "30 Minutes", "45 Minutes", "60 Minutes"]} 
+          description="Target minutes of studying per day."
+          options={["15 Min", "30 Min", "45 Min", "60 Min"]} 
           value={prefs.dailyGoal} 
           onChange={(v) => updatePref("dailyGoal", v)} 
         />
-        <SelectCard 
+        <SelectRow 
           title="Preferred Style" 
+          description="How the AI tutor approaches answers."
           options={["Reading", "Videos", "Hands-on"]} 
           value={prefs.style} 
           onChange={(v) => updatePref("style", v)} 
@@ -237,22 +229,23 @@ function LearningTab() {
   );
 }
 
-function SelectCard({ title, options, value, onChange }) {
+function SelectRow({ title, description, options, value, onChange }) {
   return (
-    <div className="rounded-2xl border bg-[var(--card)] shadow-sm p-1">
-      <div className="p-4 pb-2">
-        <p className="text-sm font-semibold">{title}</p>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 gap-4">
+      <div>
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-[var(--muted-foreground)] mt-1">{description}</p>
       </div>
-      <div className="p-2 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+      <div className="flex p-1 rounded-xl bg-[var(--secondary)]/50 border border-[var(--border)] w-full sm:w-auto shrink-0">
         {options.map(opt => (
           <button
             key={opt}
             onClick={() => onChange(opt)}
             className={cn(
-              "px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-1 text-center border",
-              value === opt 
-                ? "bg-[var(--primary)] border-[var(--primary)] text-white dark:text-black" 
-                : "bg-transparent border-transparent hover:bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-1 text-center whitespace-nowrap",
+              value === opt || value?.includes(opt.split(' ')[0]) // Handle 15 Min matching 15 Minutes
+                ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
+                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]"
             )}
           >
             {opt}
@@ -287,9 +280,9 @@ function NotificationsTab() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-6 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Notifications</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Notifications</h2>
         <p className="text-sm text-[var(--muted-foreground)]">Manage how we contact you.</p>
       </div>
 
@@ -347,9 +340,9 @@ function ToggleRow({ label, description, checked, onChange }) {
 // ----------------------------------------------------------------------
 function AboutTab() {
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-6 animate-in fade-in duration-200">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">About LearnOS</h2>
+        <h2 className="text-lg font-semibold tracking-tight">About LearnOS</h2>
         <p className="text-sm text-[var(--muted-foreground)]">System information and application details.</p>
       </div>
 

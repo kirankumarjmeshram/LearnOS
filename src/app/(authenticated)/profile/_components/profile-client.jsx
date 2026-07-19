@@ -14,7 +14,10 @@ import {
   Settings2,
   Calendar,
   ChevronRight,
-  Pencil
+  Pencil,
+  ArrowRight,
+  Map,
+  UserCircle
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -38,15 +41,15 @@ export function ProfileClient({ user: initialUser, stats }) {
     : "Unknown";
 
   return (
-    <div className="space-y-12">
-      {/* Hero Section */}
-      <div className="flex flex-col items-center text-center space-y-4">
-        <div className="relative group">
+    <div className="space-y-10">
+      {/* Horizontal Hero Section */}
+      <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
+        <div className="relative group shrink-0">
           <Image 
             src={displayUser.imageUrl || "/placeholder-avatar.png"} 
             alt="Avatar" 
-            width={96} 
-            height={96} 
+            width={88} 
+            height={88} 
             className="rounded-full object-cover border-4 border-[var(--background)] shadow-sm"
           />
           <button 
@@ -57,94 +60,110 @@ export function ProfileClient({ user: initialUser, stats }) {
           </button>
         </div>
         
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{displayUser.fullName}</h1>
-          <p className="text-[var(--muted-foreground)]">{displayUser.email}</p>
-        </div>
+        <div className="flex-1 space-y-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{displayUser.fullName}</h1>
+            <p className="text-sm text-[var(--muted-foreground)]">{displayUser.email}</p>
+          </div>
 
-        <div className="flex flex-wrap justify-center gap-4 text-xs font-medium text-[var(--muted-foreground)]">
-          <div className="flex items-center gap-1.5 bg-[var(--secondary)]/50 px-3 py-1 rounded-full">
-            <Calendar className="size-3.5" />
-            Joined {memberSince}
-          </div>
-          <div className="flex items-center gap-1.5 bg-[var(--secondary)]/50 px-3 py-1 rounded-full">
-            <Flame className="size-3.5 text-orange-500" />
-            {stats.currentStreak} Day Streak
-          </div>
-          {stats.currentGoal && (
-            <div className="flex items-center gap-1.5 bg-[var(--primary)]/10 text-[var(--primary)] px-3 py-1 rounded-full">
-              <Trophy className="size-3.5" />
-              {stats.currentGoal}
+          <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-[var(--muted-foreground)]">
+            <div className="flex items-center gap-1.5 bg-[var(--secondary)]/50 px-2.5 py-1 rounded-md">
+              <Calendar className="size-3.5" />
+              Joined {memberSince}
             </div>
-          )}
+            <div className="flex items-center gap-1.5 bg-[var(--secondary)]/50 px-2.5 py-1 rounded-md">
+              <Flame className="size-3.5 text-orange-500" />
+              {stats.currentStreak} Day Streak
+            </div>
+          </div>
         </div>
 
-        <div className="pt-4 flex gap-3">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-3 shrink-0">
           <button 
             onClick={() => setIsEditModalOpen(true)}
-            className="px-5 py-2 rounded-xl text-sm font-semibold border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-semibold border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors"
           >
             Edit Profile
           </button>
           {stats.continueLessonId && (
             <Link 
               href={`/lesson/${stats.continueLessonId}`}
-              className="px-5 py-2 rounded-xl text-sm font-semibold bg-[var(--primary)] text-white dark:text-black hover:opacity-90 transition-opacity shadow-sm"
+              className="px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--primary)] text-white dark:text-black hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2"
             >
               Continue Learning
+              <ArrowRight className="size-4" />
             </Link>
           )}
         </div>
       </div>
 
-      <div className="grid gap-12 md:grid-cols-2 lg:gap-16">
-        {/* Section 1: Learning Overview */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight">Learning Overview</h2>
-            <p className="text-sm text-[var(--muted-foreground)]">Your overall progress across LearnOS.</p>
+      {/* Current Goal Banner */}
+      {stats.currentGoal && (
+        <div className="rounded-2xl bg-gradient-to-r from-[var(--primary)]/10 via-[var(--primary)]/5 to-transparent border border-[var(--primary)]/20 p-4 flex items-center gap-4 shadow-sm">
+          <div className="p-2 bg-[var(--primary)]/20 rounded-xl shrink-0 text-[var(--primary)]">
+            <Trophy className="size-5" />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <MetricCard 
-              icon={BookOpen} 
-              label="Active Roadmaps" 
-              value={stats.activeRoadmapCount || "—"} 
-              color="text-blue-500" 
-            />
-            <MetricCard 
-              icon={CheckCircle2} 
-              label="Lessons Completed" 
-              value={stats.totalLessons || "—"} 
-              color="text-emerald-500" 
-            />
-            <MetricCard 
-              icon={Clock} 
-              label="Est. Learning Hours" 
-              value={stats.estimatedHours || "—"} 
-              color="text-purple-500" 
-            />
-            <MetricCard 
-              icon={Trophy} 
-              label="Current Level" 
-              value={stats.currentLevel} 
-              color="text-amber-500" 
-            />
+          <div>
+            <p className="text-xs font-semibold text-[var(--primary)] uppercase tracking-wider mb-0.5">Current Goal</p>
+            <p className="text-sm font-medium text-[var(--foreground)] line-clamp-1">{stats.currentGoal}</p>
           </div>
         </div>
+      )}
 
-        {/* Section 2: Learning Identity */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight">Learning Identity</h2>
-            <p className="text-sm text-[var(--muted-foreground)]">Your current curriculum configuration.</p>
-          </div>
+      <div className="grid gap-10 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_350px]">
+        {/* Left Column: Learning Overview & Identity */}
+        <div className="space-y-10">
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold tracking-tight">Learning Overview</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard 
+                icon={BookOpen} 
+                label="Roadmaps" 
+                value={stats.activeRoadmapCount || "—"} 
+                color="text-blue-500" 
+              />
+              <MetricCard 
+                icon={CheckCircle2} 
+                label="Lessons" 
+                value={stats.totalLessons || "—"} 
+                color="text-emerald-500" 
+              />
+              <MetricCard 
+                icon={Clock} 
+                label="Hours" 
+                value={stats.estimatedHours || "—"} 
+                color="text-purple-500" 
+              />
+              <MetricCard 
+                icon={Trophy} 
+                label="Level" 
+                value={stats.currentLevel} 
+                color="text-amber-500" 
+              />
+            </div>
+          </section>
 
-          <div className="rounded-2xl border bg-[var(--card)] shadow-sm divide-y divide-[var(--border)] overflow-hidden">
-            <IdentityRow label="Preferred Style" prefKey="style" />
-            <IdentityRow label="Difficulty" prefKey="difficulty" />
-            <IdentityRow label="Session Length" prefKey="dailyGoal" />
-            <IdentityRow label="Learning Pace" prefKey="pace" />
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold tracking-tight">Learning Identity</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <IdentityCard label="Preferred Style" prefKey="style" />
+              <IdentityCard label="Difficulty" prefKey="difficulty" />
+              <IdentityCard label="Session Length" prefKey="dailyGoal" />
+              <IdentityCard label="Learning Pace" prefKey="pace" />
+            </div>
+          </section>
+        </div>
+
+        {/* Right Column: Quick Actions */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold tracking-tight">Quick Actions</h2>
+          <div className="flex flex-col gap-2">
+            {stats.continueLessonId && (
+              <QuickActionLink href={`/lesson/${stats.continueLessonId}`} icon={ArrowRight} label="Resume Learning" />
+            )}
+            <QuickActionLink href="/roadmap" icon={Map} label="Open Roadmap" />
+            <QuickActionLink href="/settings" icon={Settings2} label="Settings" />
+            <QuickActionLink href="https://myaccount.clerk.com" target="_blank" icon={UserCircle} label="Manage Account" />
           </div>
         </div>
       </div>
@@ -169,21 +188,19 @@ function CheckCircle2(props) {
 
 function MetricCard({ icon: Icon, label, value, color }) {
   return (
-    <div className="rounded-2xl border bg-[var(--card)] p-5 flex flex-col justify-between hover:shadow-sm transition-shadow">
-      <div className="flex justify-between items-start mb-4">
-        <div className={cn("p-2 rounded-xl bg-[var(--secondary)]", color)}>
-          <Icon className="size-5" />
-        </div>
+    <div className="rounded-2xl border bg-[var(--card)] p-4 flex flex-col justify-between hover:shadow-sm transition-shadow h-[104px]">
+      <div className={cn("size-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center mb-2", color)}>
+        <Icon className="size-4" />
       </div>
       <div>
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
-        <p className="text-xs font-medium text-[var(--muted-foreground)] mt-1">{label}</p>
+        <p className="text-lg font-bold tracking-tight leading-none">{value}</p>
+        <p className="text-[11px] font-medium text-[var(--muted-foreground)] mt-1 uppercase tracking-wider">{label}</p>
       </div>
     </div>
   );
 }
 
-function IdentityRow({ label, prefKey }) {
+function IdentityCard({ label, prefKey }) {
   const [val, setVal] = useState(null);
 
   useEffect(() => {
@@ -199,20 +216,33 @@ function IdentityRow({ label, prefKey }) {
     <Link 
       href="/settings"
       onClick={() => localStorage.setItem("learnos_settings_tab", "learning")}
-      className="flex items-center justify-between p-5 hover:bg-[var(--secondary)]/30 transition-colors group"
+      className="flex flex-col justify-center p-4 rounded-2xl border bg-[var(--card)] hover:shadow-sm hover:border-[var(--primary)]/30 transition-all group h-[88px]"
+    >
+      <div className="flex items-center gap-2 mb-1.5">
+        <Settings2 className="size-3.5 text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors" />
+        <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">{label}</p>
+      </div>
+      {val ? (
+        <span className="text-sm font-semibold text-[var(--foreground)]">{val}</span>
+      ) : (
+        <span className="text-sm italic text-[var(--muted-foreground)]">Not configured</span>
+      )}
+    </Link>
+  );
+}
+
+function QuickActionLink({ href, icon: Icon, label, target }) {
+  return (
+    <Link 
+      href={href}
+      target={target}
+      className="flex items-center justify-between p-3.5 rounded-xl border bg-[var(--card)] hover:bg-[var(--secondary)]/50 transition-colors group"
     >
       <div className="flex items-center gap-3">
-        <Settings2 className="size-4 text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors" />
-        <p className="text-sm font-medium">{label}</p>
+        <Icon className="size-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors" />
+        <span className="text-sm font-medium">{label}</span>
       </div>
-      <div className="flex items-center gap-2">
-        {val ? (
-          <span className="text-sm font-semibold text-[var(--foreground)] bg-[var(--secondary)] px-2.5 py-0.5 rounded-full">{val}</span>
-        ) : (
-          <span className="text-sm italic text-[var(--muted-foreground)]">Not configured</span>
-        )}
-        <ChevronRight className="size-4 text-[var(--muted-foreground)] opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-      </div>
+      <ChevronRight className="size-4 text-[var(--muted-foreground)] opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
     </Link>
   );
 }
