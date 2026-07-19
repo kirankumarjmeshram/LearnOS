@@ -19,7 +19,7 @@ export async function PUT(request, { params }) {
     const updatedResource = await GlobalResource.findOneAndUpdate(
       { _id: id, clerkId: userId },
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
 
     if (!updatedResource) {
@@ -48,7 +48,7 @@ export async function PATCH(request, { params }) {
     const updatedResource = await GlobalResource.findOneAndUpdate(
       { _id: id, clerkId: userId },
       { $set: body },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
 
     if (!updatedResource) {

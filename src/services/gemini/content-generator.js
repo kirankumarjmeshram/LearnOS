@@ -278,7 +278,7 @@ export async function getOrGenerateLessonContent(lessonId, roadmapGoal) {
     const updatedLesson = await Lesson.findByIdAndUpdate(
       lesson._id, 
       { $set: { aiContent: content, generationStatus: "completed" } },
-      { new: true } // Return the updated document
+      { returnDocument: "after" } // Return the updated document
     );
 
     if (!updatedLesson?.aiContent) {

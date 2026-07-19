@@ -2,6 +2,7 @@
 
 import React, { memo, useState } from "react";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 import remarkGfm from "remark-gfm";
 import {
   AlertTriangle,
@@ -218,19 +219,34 @@ function CodeBlock({ code, language, title }) {
 export const LessonContent = memo(function LessonContent({ content }) {
   if (!content) return null;
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 12 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
+  };
+
   return (
-    <div className="mx-auto max-w-3xl space-y-12 animate-in fade-in duration-500 pb-20">
+    <motion.div 
+      variants={containerVariants} 
+      initial="hidden" 
+      animate="show" 
+      className="mx-auto max-w-3xl space-y-12 pb-20"
+    >
       
-      {/* Overview */}
       {content.overview && (
-        <BlockErrorBoundary>
-          <div className="prose prose-base dark:prose-invert max-w-none">
-            <h2 className="text-3xl font-extrabold tracking-tight mb-6">Lesson Overview</h2>
-            <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
-              {content.overview}
-            </ReactMarkdown>
-          </div>
-        </BlockErrorBoundary>
+        <motion.div variants={itemVariants}>
+          <BlockErrorBoundary>
+            <div className="prose prose-base dark:prose-invert max-w-none">
+              <h2 className="text-3xl font-extrabold tracking-tight mb-6">Lesson Overview</h2>
+              <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+                {content.overview}
+              </ReactMarkdown>
+            </div>
+          </BlockErrorBoundary>
+        </motion.div>
       )}
 
       {/* Visual Callouts */}
@@ -250,103 +266,113 @@ export const LessonContent = memo(function LessonContent({ content }) {
         );
       })}
 
-      {/* Real World Example */}
       {content.realWorldExample && (
-        <BlockErrorBoundary>
-          <div className="rounded-2xl border-l-4 border-l-[var(--primary)] border-y border-r border-y-[var(--border)] border-r-[var(--border)] bg-[var(--card)] p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-6 text-[var(--primary)]">
-              <Briefcase className="size-6" />
-              <h3 className="text-xl font-bold">{content.realWorldExample.title}</h3>
+        <motion.div variants={itemVariants}>
+          <BlockErrorBoundary>
+            <div className="rounded-2xl border-l-4 border-l-[var(--primary)] border-y border-r border-y-[var(--border)] border-r-[var(--border)] bg-[var(--card)] p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-6 text-[var(--primary)]">
+                <Briefcase className="size-6" />
+                <h3 className="text-xl font-bold">{content.realWorldExample.title}</h3>
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Scenario</h4>
+                  <p className="text-base leading-relaxed text-[var(--foreground)]">{content.realWorldExample.scenario}</p>
+                </div>
+                <div className="rounded-xl bg-[var(--muted)]/50 p-6 border border-[var(--border)]">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)] mb-2">In The Industry</h4>
+                  <p className="text-base leading-relaxed text-[var(--muted-foreground)]">{content.realWorldExample.example}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Why It Matters</h4>
+                  <p className="text-base leading-relaxed text-[var(--foreground)]">{content.realWorldExample.importance}</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Scenario</h4>
-                <p className="text-base leading-relaxed text-[var(--foreground)]">{content.realWorldExample.scenario}</p>
-              </div>
-              <div className="rounded-xl bg-[var(--muted)]/50 p-6 border border-[var(--border)]">
-                <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)] mb-2">In The Industry</h4>
-                <p className="text-base leading-relaxed text-[var(--muted-foreground)]">{content.realWorldExample.example}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Why It Matters</h4>
-                <p className="text-base leading-relaxed text-[var(--foreground)]">{content.realWorldExample.importance}</p>
-              </div>
-            </div>
-          </div>
-        </BlockErrorBoundary>
+          </BlockErrorBoundary>
+        </motion.div>
       )}
 
-      {/* Mermaid Diagrams */}
       {content.mermaidDiagrams?.map((diagram, i) => (
-        <BlockErrorBoundary key={i}>
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-sm">
-            <h3 className="text-xl font-bold mb-6">{diagram.title}</h3>
-            <MermaidRenderer code={diagram.code} />
-          </div>
-        </BlockErrorBoundary>
+        <motion.div key={i} variants={itemVariants}>
+          <BlockErrorBoundary>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-sm">
+              <h3 className="text-xl font-bold mb-6">{diagram.title}</h3>
+              <MermaidRenderer code={diagram.code} />
+            </div>
+          </BlockErrorBoundary>
+        </motion.div>
       ))}
 
       {/* Comparison Tables */}
       {content.comparisonTables?.map((table, i) => (
-        <BlockErrorBoundary key={i}>
-          <div className="space-y-6">
-            <h3 className="text-xl font-bold">{table.title}</h3>
-            <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
-              {table.markdown}
-            </ReactMarkdown>
-          </div>
-        </BlockErrorBoundary>
+        <motion.div key={i} variants={itemVariants}>
+          <BlockErrorBoundary>
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold">{table.title}</h3>
+              <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+                {table.markdown}
+              </ReactMarkdown>
+            </div>
+          </BlockErrorBoundary>
+        </motion.div>
       ))}
 
-      {/* Key Concepts */}
       {content.keyConcepts?.length > 0 && (
-        <CollapsibleSection title="Key Concepts" icon={BookOpen} iconClass="text-[var(--primary)]" defaultOpen>
-          <div className="grid gap-5 sm:grid-cols-2">
-            {content.keyConcepts.map((concept, i) => (
-              <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-6 shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-base font-extrabold text-[var(--primary)] mb-3">{concept.term}</p>
-                <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">{concept.definition}</p>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
+        <motion.div variants={itemVariants}>
+          <CollapsibleSection title="Key Concepts" icon={BookOpen} iconClass="text-[var(--primary)]" defaultOpen>
+            <div className="grid gap-5 sm:grid-cols-2">
+              {content.keyConcepts.map((concept, i) => (
+                <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <p className="text-base font-extrabold text-[var(--primary)] mb-3">{concept.term}</p>
+                  <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">{concept.definition}</p>
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* Code Examples */}
       {content.codeExamples?.length > 0 && (
-        <CollapsibleSection title={`Code Examples (${content.codeExamples.length})`} icon={Code2} iconClass="text-indigo-500" defaultOpen={false}>
-          <div className="space-y-8">
-            {content.codeExamples.map((ex, i) => (
-              <BlockErrorBoundary key={i}>
-                <CodeBlock code={ex.code} language={ex.language} title={ex.title} />
-              </BlockErrorBoundary>
-            ))}
-          </div>
-        </CollapsibleSection>
+        <motion.div variants={itemVariants}>
+          <CollapsibleSection title={`Code Examples (${content.codeExamples.length})`} icon={Code2} iconClass="text-indigo-500" defaultOpen={false}>
+            <div className="space-y-8">
+              {content.codeExamples.map((ex, i) => (
+                <BlockErrorBoundary key={i}>
+                  <CodeBlock code={ex.code} language={ex.language} title={ex.title} />
+                </BlockErrorBoundary>
+              ))}
+            </div>
+          </CollapsibleSection>
+        </motion.div>
       )}
 
-      {/* Hands On Labs */}
       {content.handsOnLabs?.map((lab, i) => (
-        <CollapsibleSection key={i} title={`Lab: ${lab.title}`} icon={FlaskConical} iconClass="text-purple-500">
-          <ol className="list-decimal space-y-5 pl-6">
-            {lab.steps.map((step, idx) => (
-              <li key={idx} className="text-base leading-relaxed text-[var(--foreground)] marker:text-[var(--primary)] marker:font-bold">
-                {step}
-              </li>
-            ))}
-          </ol>
-        </CollapsibleSection>
+        <motion.div key={i} variants={itemVariants}>
+          <CollapsibleSection title={`Lab: ${lab.title}`} icon={FlaskConical} iconClass="text-purple-500">
+            <ol className="list-decimal space-y-5 pl-6">
+              {lab.steps.map((step, idx) => (
+                <li key={idx} className="text-base leading-relaxed text-[var(--foreground)] marker:text-[var(--primary)] marker:font-bold">
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </CollapsibleSection>
+        </motion.div>
       ))}
 
       {/* Knowledge Checks */}
       {content.knowledgeChecks?.length > 0 && (
-        <CollapsibleSection title="Knowledge Checks" icon={CheckCircle2} iconClass="text-emerald-500" defaultOpen={true}>
-          <div className="space-y-8">
-            {content.knowledgeChecks.map((qc, i) => (
-              <KnowledgeCheck key={i} qc={qc} index={i} />
-            ))}
-          </div>
-        </CollapsibleSection>
+        <motion.div variants={itemVariants}>
+          <CollapsibleSection title="Knowledge Checks" icon={CheckCircle2} iconClass="text-emerald-500" defaultOpen={true}>
+            <div className="space-y-8">
+              {content.knowledgeChecks.map((qc, i) => (
+                <KnowledgeCheck key={i} qc={qc} index={i} />
+              ))}
+            </div>
+          </CollapsibleSection>
+        </motion.div>
       )}
 
       {/* Interview Questions */}
@@ -393,23 +419,24 @@ export const LessonContent = memo(function LessonContent({ content }) {
         </CollapsibleSection>
       )}
 
-      {/* Key Takeaways */}
       {content.keyTakeaways?.length > 0 && (
-        <BlockErrorBoundary>
-          <div className="rounded-2xl border-l-4 border-[var(--primary)] bg-[var(--primary)]/5 p-8 shadow-sm">
-            <h3 className="mb-5 text-sm font-extrabold uppercase tracking-widest text-[var(--primary)]">Key Takeaways</h3>
-            <ul className="space-y-4">
-              {content.keyTakeaways.map((takeaway, i) => (
-                <li key={i} className="flex items-start gap-3 text-base leading-relaxed text-[var(--foreground)] font-medium">
-                  <span className="mt-2 size-2 shrink-0 rounded-full bg-[var(--primary)]" />
-                  {takeaway}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </BlockErrorBoundary>
+        <motion.div variants={itemVariants}>
+          <BlockErrorBoundary>
+            <div className="rounded-2xl border-l-4 border-[var(--primary)] bg-[var(--primary)]/5 p-8 shadow-sm">
+              <h3 className="mb-5 text-sm font-extrabold uppercase tracking-widest text-[var(--primary)]">Key Takeaways</h3>
+              <ul className="space-y-4">
+                {content.keyTakeaways.map((takeaway, i) => (
+                  <li key={i} className="flex items-start gap-3 text-base leading-relaxed text-[var(--foreground)] font-medium">
+                    <span className="mt-2 size-2 shrink-0 rounded-full bg-[var(--primary)]" />
+                    {takeaway}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </BlockErrorBoundary>
+        </motion.div>
       )}
 
-    </div>
+    </motion.div>
   );
 });

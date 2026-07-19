@@ -47,7 +47,7 @@ export async function updateRoadmapStatus(clerkId, roadmapId, status) {
   const roadmap = await Roadmap.findOneAndUpdate(
     { _id: roadmapId, clerkId },
     { $set: { status } },
-    { new: true },
+    { returnDocument: "after" },
   ).lean();
   if (!roadmap) throw new Error("Roadmap not found or access denied.");
   return roadmap;

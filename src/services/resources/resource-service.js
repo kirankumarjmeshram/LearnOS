@@ -155,7 +155,7 @@ export async function getLessonNote(clerkId, lessonId) {
 export async function saveLessonNote(clerkId, lessonId, content) {
   await connectToDatabase();
   const lesson = await getOwnedLesson(clerkId, lessonId);
-  return LessonNote.findOneAndUpdate({ clerkId, lessonId }, { $set: { content, roadmapId: lesson.roadmapId, phaseId: lesson.phaseId } }, { upsert: true, new: true, setDefaultsOnInsert: true }).lean();
+  return LessonNote.findOneAndUpdate({ clerkId, lessonId }, { $set: { content, roadmapId: lesson.roadmapId, phaseId: lesson.phaseId } }, { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }).lean();
 }
 
 export async function getNotesForUser(clerkId) {

@@ -3,6 +3,7 @@
 import { memo, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   CheckSquare,
@@ -185,7 +186,11 @@ export function LessonView({
           </button>
         </div>
 
-        <div
+        <motion.div
+          key={lesson._id}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className={cn(
             "mx-auto w-full px-6 pb-32 pt-12 transition-all duration-300 lg:px-12",
             isStudyMode ? "max-w-[1000px]" : "max-w-[900px]"
@@ -298,7 +303,7 @@ export function LessonView({
               isLastInPhase={isLastInPhase}
             />
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ── Right: Learning Hub ── */}
