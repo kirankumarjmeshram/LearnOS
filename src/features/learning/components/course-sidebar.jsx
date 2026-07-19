@@ -325,7 +325,10 @@ export function CourseSidebar({ roadmapGoal, phases, lessons, currentLessonId })
       )}
 
       {/* ── Desktop: expanded ── */}
-      <aside className="hidden h-full w-[300px] shrink-0 border-r border-[var(--border)] lg:block">
+      <aside className={cn(
+        "hidden h-full shrink-0 border-r border-[var(--border)] lg:block",
+        "lg:w-[250px] min-[1400px]:w-[300px]"
+      )}>
         <SidebarInner {...sharedProps} />
       </aside>
     </>

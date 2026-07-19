@@ -13,6 +13,7 @@ import {
   Video,
   FileText,
   Link2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,8 @@ export function LearningHub({
   globalResources = [],
   noteContent = "",
   onOpenResources,
+  isOpen,
+  onClose,
 }) {
   const lessonId = lesson?._id;
 
@@ -121,10 +124,41 @@ export function LearningHub({
   const quickResources = [...globalResources, ...aiResources].slice(0, 3);
 
   return (
-    <aside className="hidden h-full w-[300px] shrink-0 flex-col gap-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] xl:flex shadow-sm pb-8">
-      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--border)] bg-[var(--background)]/95 px-4 py-3 backdrop-blur">
-        <h2 className="text-sm font-bold tracking-tight">Learning Hub</h2>
-      </div>
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <aside
+        className={cn(
+          "shrink-0 flex-col gap-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] pb-8 transition-transform duration-300",
+          // Drawer mode (<1024px)
+          "fixed inset-y-0 right-0 z-50 h-[100dvh] w-[300px] max-w-[85vw] shadow-2xl",
+          isOpen ? "flex translate-x-0" : "hidden translate-x-full",
+          // Static mode (>=1024px)
+          "lg:static lg:flex lg:h-full lg:translate-x-0 lg:shadow-none",
+          "lg:w-[300px] xl:w-[340px]",
+          // Hide if isOpen is false on desktop
+          !isOpen && "lg:hidden"
+        )}
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--background)]/95 px-4 py-3 backdrop-blur">
+          <h2 className="text-sm font-bold tracking-tight">Learning Hub</h2>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] lg:hidden"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
 
       <div className="flex-1 space-y-4 p-4">
         
@@ -155,7 +189,13 @@ export function LearningHub({
             {nextLesson && (
               <div className="flex gap-2">
                 <span className="text-[10px] font-bold uppercase text-[var(--muted-foreground)] w-10 shrink-0">Next</span>
-                <Link href={`/lesson/${nextLesson._id}`} className="text-xs font-semibold line-clamp-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
+                <Link 
+                  href={`/lesson/${nextLesson._id}`} 
+                  onClick={() => {
+                    if (window.innerWidth < 1024) onClose();
+                  }}
+                  className="text-xs font-semibold line-clamp-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors"
+                >
                   {nextLesson.title.split(":").pop()?.trim()}
                 </Link>
               </div>
@@ -287,5 +327,6 @@ export function LearningHub({
 
       </div>
     </aside>
+    </>
   );
 }

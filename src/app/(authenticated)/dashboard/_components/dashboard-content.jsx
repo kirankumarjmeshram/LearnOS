@@ -14,6 +14,7 @@ import {
   Flame,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
+import { motion } from "framer-motion";
 
 function ProgressBar({ value, color = "bg-[var(--primary)]" }) {
   return (
@@ -59,10 +60,28 @@ export default function DashboardContent({ roadmaps, name }) {
 
   const hasRoadmap = roadmaps.length > 0;
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.05 },
+    },
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 8 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  };
+
   return (
-    <div className="space-y-10">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-10"
+    >
       {/* Greeting Header */}
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <motion.section variants={item} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Workspace Dashboard</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">Welcome back, {name}!</h1>
@@ -77,10 +96,10 @@ export default function DashboardContent({ roadmaps, name }) {
             <Plus className="size-4" /> New Roadmap
           </Link>
         )}
-      </section>
+      </motion.section>
 
       {!hasRoadmap && (
-        <section className="rounded-2xl border bg-[var(--card)] p-8 text-center shadow-sm max-w-xl mx-auto space-y-6">
+        <motion.section variants={item} className="rounded-2xl border bg-[var(--card)] p-8 text-center shadow-sm max-w-xl mx-auto space-y-6">
           <Sparkles className="size-8 text-[var(--primary)] mx-auto animate-pulse" />
           <div className="space-y-2">
             <h2 className="text-xl font-bold">Build your Learning OS</h2>
@@ -89,14 +108,14 @@ export default function DashboardContent({ roadmaps, name }) {
           <Link href={ROUTES.ONBOARDING} className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-[var(--primary-foreground)] hover:opacity-90 shadow-sm transition-all">
             <Plus className="size-4" /> Build My Learning OS
           </Link>
-        </section>
+        </motion.section>
       )}
 
       {hasRoadmap && (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             {continueRoadmap && (
-              <div className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm space-y-5">
+              <motion.div variants={item} className="rounded-2xl border bg-[var(--card)] p-6 shadow-sm space-y-5">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary)]">Continue Learning</p>
                   {continueRoadmap.lastStudiedAt && <span className="text-[10px] text-[var(--muted-foreground)] font-semibold">Last studied: {format(new Date(continueRoadmap.lastStudiedAt), "MMM d, yyyy")}</span>}
@@ -122,11 +141,11 @@ export default function DashboardContent({ roadmaps, name }) {
                     <Layers3 className="size-4 text-[var(--muted-foreground)]" /> Browse Curriculum
                   </Link>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {activeRoadmaps.length > 1 && (
-              <div className="space-y-3">
+              <motion.div variants={item} className="space-y-3">
                 <h3 className="text-base font-bold flex items-center gap-2"><Layers3 className="size-4 text-[var(--primary)]" /> Active Roadmaps</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {activeRoadmaps.slice(0, 4).map((r) => (
@@ -142,11 +161,11 @@ export default function DashboardContent({ roadmaps, name }) {
                     </Link>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {recentActivities.length > 0 && (
-              <div className="space-y-3">
+              <motion.div variants={item} className="space-y-3">
                 <h3 className="text-base font-bold flex items-center gap-2"><Activity className="size-4 text-[var(--primary)]" /> Recent Activity</h3>
                 <div className="rounded-2xl border bg-[var(--card)] p-4 divide-y space-y-3">
                   {recentActivities.map((act) => (
@@ -162,12 +181,12 @@ export default function DashboardContent({ roadmaps, name }) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm space-y-4">
+            <motion.div variants={item} className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm space-y-4">
               <h4 className="font-bold text-sm flex items-center gap-2"><TrendingUp className="size-4 text-[var(--primary)]" /> Performance Metrics</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border p-3.5 space-y-1"><Flame className="size-4 text-orange-500 fill-orange-500" /><p className="text-lg font-bold leading-none mt-1">{bestStreak} Days</p><p className="text-[10px] text-[var(--muted-foreground)]">Current Streak</p></div>
@@ -177,19 +196,19 @@ export default function DashboardContent({ roadmaps, name }) {
                 <div className="flex justify-between"><span className="text-[var(--muted-foreground)]">Completed Lessons</span><span className="font-bold">{totalCompletedLessons}</span></div>
                 <div className="flex justify-between"><span className="text-[var(--muted-foreground)]">Weekly Avg Time</span><span className="font-bold">{(avgDailyMinutes / 60 * 7).toFixed(1)} hrs/week</span></div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm space-y-4">
+            <motion.div variants={item} className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm space-y-4">
               <h4 className="font-bold text-sm flex items-center gap-2"><Target className="size-4 text-[var(--primary)]" /> Weekly Study Goal</h4>
               <p className="text-xs text-[var(--muted-foreground)] leading-5">Target: {continueRoadmap?.estimatedHoursPerWeek || 10} hours of structured learning per week.</p>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-semibold"><span>Hours completed</span><span>{studyHours} / {continueRoadmap?.estimatedHoursPerWeek || 10} hrs</span></div>
                 <ProgressBar value={(parseFloat(studyHours) / (continueRoadmap?.estimatedHoursPerWeek || 10)) * 100} color="bg-emerald-600" />
               </div>
-            </div>
+            </motion.div>
 
             {achievements.length > 0 && (
-              <div className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm space-y-4">
+              <motion.div variants={item} className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm space-y-4">
                 <h4 className="font-bold text-sm flex items-center gap-2"><Award className="size-4 text-[var(--primary)]" /> Unlocked Achievements</h4>
                 <div className="space-y-2.5">
                   {achievements.map((ach) => (
@@ -199,11 +218,11 @@ export default function DashboardContent({ roadmaps, name }) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

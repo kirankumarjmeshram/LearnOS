@@ -65,20 +65,31 @@ export function LessonView({
   const router = useRouter();
   const [isResourcesDrawerOpen, setIsResourcesDrawerOpen] = useState(false);
 
-  // Study Mode State
   const [isLeftOpen, setIsLeftOpen] = useState(true);
-  const [isRightOpen, setIsRightOpen] = useState(true);
+  const [isRightOpen, setIsRightOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+    const width = window.innerWidth;
+    
+    // Left Sidebar state
     try {
       const stored = localStorage.getItem("learnos:study-mode");
       if (stored) {
-        const { left, right } = JSON.parse(stored);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsLeftOpen(left ?? true);
-        setIsRightOpen(right ?? true);
+        setIsLeftOpen(JSON.parse(stored).left ?? true);
       }
     } catch {}
+
+    // Right Sidebar (Learning Hub) Responsive Logic
+    if (width >= 1024) {
+      // Desktop & Laptop: Persistent, visible by default
+      const stored = localStorage.getItem("learnos:hub-desktop");
+      setIsRightOpen(stored ? JSON.parse(stored) : true);
+    } else {
+      // Tablet/Mobile: Default closed
+      setIsRightOpen(false);
+    }
   }, []);
 
   const toggleLeft = () => {
@@ -92,20 +103,35 @@ export function LessonView({
   const toggleRight = () => {
     setIsRightOpen((p) => {
       const next = !p;
-      localStorage.setItem("learnos:study-mode", JSON.stringify({ left: isLeftOpen, right: next }));
+      if (typeof window !== "undefined") {
+        const width = window.innerWidth;
+        if (width >= 1024) {
+          localStorage.setItem("learnos:hub-desktop", JSON.stringify(next));
+        }
+      }
       return next;
     });
   };
 
   const toggleStudyMode = () => {
     const isStudyMode = !isLeftOpen && !isRightOpen;
-    const nextState = !isStudyMode; // if currently study mode, turn it off (open both). If not, turn it on (close both)
+    const nextState = !isStudyMode;
     setIsLeftOpen(nextState);
-    setIsRightOpen(nextState);
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+      setIsRightOpen(nextState);
+      localStorage.setItem("learnos:hub-desktop", JSON.stringify(nextState));
+    }
     localStorage.setItem("learnos:study-mode", JSON.stringify({ left: nextState, right: nextState }));
   };
 
-  const isStudyMode = !isLeftOpen && !isRightOpen;
+  // Close right overlay on lesson change for mobile
+  useEffect(() => {
+    if (isMounted && window.innerWidth < 1024) {
+      setIsRightOpen(false);
+    }
+  }, [lesson._id, isMounted]);
+
+  const isStudyMode = !isLeftOpen && (!isRightOpen || (isMounted && window.innerWidth < 1024));
 
   // Derive phase info
   const currentPhase = phases.find((p) => p._id === lesson.phaseId) ?? phases[0];
@@ -182,7 +208,7 @@ export function LessonView({
             className="inline-flex items-center gap-2 rounded-lg p-2 text-xs font-semibold text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
           >
             <span className="hidden sm:inline">{isRightOpen ? "Hide Hub" : "Learning Hub"}</span>
-            {isRightOpen ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+            <PanelRightClose className={cn("size-4 transition-transform", isRightOpen && "rotate-180")} />
           </button>
         </div>
 
@@ -307,19 +333,19 @@ export function LessonView({
       </div>
 
       {/* ── Right: Learning Hub ── */}
-      {isRightOpen && (
-        <LearningHub
-          lesson={lesson}
-          currentPhaseName={currentPhase?.title}
-          phases={phases}
-          lessons={lessons}
-          aiResources={aiResources}
-          initialUserResources={initialUserResources}
-          globalResources={globalResources}
-          noteContent={noteContent}
-          onOpenResources={() => setIsResourcesDrawerOpen(true)}
-        />
-      )}
+      <LearningHub
+        lesson={lesson}
+        currentPhaseName={currentPhase?.title}
+        phases={phases}
+        lessons={lessons}
+        aiResources={aiResources}
+        initialUserResources={initialUserResources}
+        globalResources={globalResources}
+        noteContent={noteContent}
+        onOpenResources={() => setIsResourcesDrawerOpen(true)}
+        isOpen={isRightOpen}
+        onClose={() => setIsRightOpen(false)}
+      />
 
       {/* Resources Drawer */}
       <ResourcesDrawer 
