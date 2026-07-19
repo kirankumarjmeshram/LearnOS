@@ -148,6 +148,31 @@ export async function getAllRoadmapsWithProgress(clerkId) {
   }));
 }
 
+/**
+ * Lightweight query for the dashboard.
+ * Does not populate phases to reduce serialization and DB overhead.
+ */
+export async function getDashboardRoadmaps(clerkId) {
+  await connectToDatabase();
+  const [roadmaps, progressList] = await Promise.all([
+    Roadmap.find({ clerkId })
+      .sort({ lastStudiedAt: -1, createdAt: -1 })
+      .select("-phases") // Optional: strictly exclude phases if stored, though .lean() without .populate is enough
+      .lean(),
+    Progress.find({ clerkId }).lean(),
+  ]);
+
+  const progressMap = progressList.reduce((acc, p) => {
+    acc[p.roadmapId.toString()] = p;
+    return acc;
+  }, {});
+
+  return roadmaps.map((r) => ({
+    ...r,
+    progress: progressMap[r._id.toString()] || null,
+  }));
+}
+
 export async function getLessonForUser(clerkId, lessonId) {
   await connectToDatabase();
   const lesson = await Lesson.findById(lessonId).lean();

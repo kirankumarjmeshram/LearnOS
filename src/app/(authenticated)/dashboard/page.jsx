@@ -1,6 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { PageWrapper } from "@/components/layout/page-wrapper";
-import { getAllRoadmapsWithProgress } from "@/services/learning-service";
+import { getDashboardRoadmaps } from "@/services/learning-service";
 import { DashboardClientWrapper } from "./_components/dashboard-client-wrapper";
 
 export default async function DashboardPage(props) {
@@ -16,7 +16,7 @@ export default async function DashboardPage(props) {
     // If generating is true, DO NOT block the server component on database queries!
     // We want the AI Builder UI to render instantly.
     if (!isGenerating && user?.id) {
-      allRoadmaps = await getAllRoadmapsWithProgress(user.id);
+      allRoadmaps = await getDashboardRoadmaps(user.id);
     }
   } catch (error) {
     console.error("Unable to load dashboard roadmaps:", error);

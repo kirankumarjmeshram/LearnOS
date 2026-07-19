@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { AiTutorPanel } from "./ai-tutor-panel";
 
 const iconByType = {
   youtube: Video,
@@ -55,6 +56,9 @@ export function LearningHub({
       nextLesson: nextLessonIdx > -1 ? phaseL[nextLessonIdx] : null,
     };
   }, [lessons, lesson]);
+
+  // ─── AI Tutor State ────────────────────────────────────────────────────────
+  const [isAiTutorOpen, setIsAiTutorOpen] = useState(false);
 
   // ─── Bookmarks ─────────────────────────────────────────────────────────────
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -139,7 +143,7 @@ export function LearningHub({
 
       <aside
         className={cn(
-          "shrink-0 flex-col gap-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] pb-8 transition-transform duration-300",
+          "relative shrink-0 flex-col gap-0 overflow-hidden border-l border-[var(--border)] bg-[var(--background)] transition-transform duration-300",
           // Drawer mode (<1024px)
           "fixed inset-y-0 right-0 z-50 h-[100dvh] w-[300px] max-w-[85vw] shadow-2xl",
           isOpen ? "flex translate-x-0" : "hidden translate-x-full",
@@ -150,8 +154,15 @@ export function LearningHub({
           !isOpen && "lg:hidden"
         )}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--background)]/95 px-4 py-3 backdrop-blur">
-          <h2 className="text-sm font-bold tracking-tight">Learning Hub</h2>
+        {isAiTutorOpen ? (
+          <AiTutorPanel 
+            lessonId={lessonId} 
+            onClose={() => setIsAiTutorOpen(false)} 
+          />
+        ) : (
+          <div className="flex h-full flex-col overflow-y-auto pb-8">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--background)]/95 px-4 py-3 backdrop-blur">
+              <h2 className="text-sm font-bold tracking-tight">Learning Hub</h2>
           <button
             onClick={onClose}
             className="rounded-full p-1.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] lg:hidden"
@@ -206,7 +217,7 @@ export function LearningHub({
         {/* Quick Actions (Always visible, primary tools) */}
         <div className="flex flex-col gap-2.5">
           <button
-            onClick={() => toast.info("Ask AI is coming soon!")}
+            onClick={() => setIsAiTutorOpen(true)}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] p-3 text-xs font-bold text-[var(--primary-foreground)] shadow-sm hover:opacity-90 transition-opacity"
           >
             <Sparkles className="size-4" />
@@ -324,8 +335,9 @@ export function LearningHub({
             </button>
           </div>
         </div>
-
       </div>
+      </div>
+      )}
     </aside>
     </>
   );

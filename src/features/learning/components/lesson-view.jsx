@@ -70,6 +70,7 @@ export function LessonView({
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line
     setIsMounted(true);
     const width = window.innerWidth;
     
@@ -127,6 +128,7 @@ export function LessonView({
   // Close right overlay on lesson change for mobile
   useEffect(() => {
     if (isMounted && window.innerWidth < 1024) {
+      // eslint-disable-next-line
       setIsRightOpen(false);
     }
   }, [lesson._id, isMounted]);
