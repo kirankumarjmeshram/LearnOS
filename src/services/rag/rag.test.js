@@ -4,7 +4,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("pdf-parse/lib/pdf-parse.js", () => ({ default: vi.fn() }));
 vi.mock("mammoth", () => ({ default: { extractRawText: vi.fn() } }));
 
-import { buildRagContext, toSources } from "./generation/context-builder";
+import { buildLessonReference, buildRagContext, toSources } from "./generation/context-builder";
 import { extractDocumentText, isSupportedDocumentPath } from "./ingestion/document-extractor";
 import { chunkText } from "./ingestion/text-chunker";
 import { normalizeText } from "./ingestion/text-normalizer";
@@ -59,6 +59,20 @@ describe("RAG metadata and context", () => {
     ];
     expect(buildRagContext(chunks)).toContain("[Source 1]");
     expect(toSources(chunks)).toEqual([{ resourceId: "resource-1", lessonId: "lesson-1", chunkIndex: 0, title: "RAG guide", sourceType: "pdf" }]);
+  });
+
+  it("creates a bounded lesson fallback without serializing the entire lesson object", () => {
+    const reference = buildLessonReference({
+      overview: "This lesson explains retrieval.",
+      objectives: ["Understand vectors"],
+      keyConcepts: [{ term: "Embedding", definition: "A numeric representation." }],
+      keyTakeaways: ["Use relevant context."],
+      ignoredLargeField: "x".repeat(8000),
+    });
+    expect(reference).toContain("Overview:");
+    expect(reference).toContain("Embedding: A numeric representation.");
+    expect(reference).not.toContain("ignoredLargeField");
+    expect(reference.length).toBeLessThanOrEqual(6000);
   });
 
   it("keeps private ownership metadata with every indexed chunk", () => {

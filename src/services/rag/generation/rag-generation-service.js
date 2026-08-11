@@ -5,14 +5,14 @@ import { buildRagContext, toSources } from "@/services/rag/generation/context-bu
 import { buildRagPrompt } from "@/services/rag/generation/rag-prompt";
 import { RagError } from "@/services/rag/rag-types";
 
-export async function generateGroundedAnswer({ question, chunks, lessonContext }) {
-  if (!chunks.length) {
+export async function generateGroundedAnswer({ question, chunks, lessonContext, lessonReference }) {
+  if (!chunks.length && !lessonReference) {
     return { answer: "I couldn't find relevant information in your processed learning resources for that question.", sources: [] };
   }
   try {
     const response = await getGeminiClient().models.generateContent({
       model: GEMINI_MODEL,
-      contents: buildRagPrompt({ question, context: buildRagContext(chunks), lessonContext }),
+      contents: buildRagPrompt({ question, context: buildRagContext(chunks), lessonContext, lessonReference }),
       config: { temperature: 0.2 },
     });
     if (!response.text?.trim()) throw new Error("Gemini returned an empty response.");

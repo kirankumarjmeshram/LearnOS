@@ -18,9 +18,9 @@ export async function POST(req, props) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    const responseText = await askAiTutor(user.id, lessonId, userMessage);
+    const result = await askAiTutor(user.id, lessonId, userMessage);
 
-    return NextResponse.json({ response: responseText });
+    return NextResponse.json({ response: result.answer, sources: result.sources });
   } catch (error) {
     console.error("[LessonChat API Error]:", error);
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });

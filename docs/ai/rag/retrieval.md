@@ -27,3 +27,5 @@ Example response:
 ```
 
 When no chunks match, LearnOS returns a clear no-evidence response rather than fabricating a source-based answer.
+
+Lesson chat has one deliberate usability fallback: if a learner has no matching processed document, it sends a bounded projection of the already-generated lesson content to Gemini. This keeps normal actions such as **Summarize Lesson** usable without pretending they came from an uploaded resource; the response has an empty `sources` array. The standalone RAG query endpoint remains retrieval-only.

@@ -79,15 +79,24 @@ export async function removeOwnedResourceVectors(userId, resource) {
   }
 }
 
-export async function queryRag({ userId, question, resourceId, lessonId, lessonContext }) {
+export async function queryRag({ userId, question, resourceId, lessonId, lessonContext, lessonReference }) {
   if (!question?.trim()) throw new RagError("A question is required.", { code: "INVALID_QUESTION", status: 400 });
   if (resourceId) await getOwnedResource(userId, resourceId);
   if (lessonId) await assertOwnedLesson(userId, lessonId);
 
   const retrievalStartedAt = performance.now();
-  const retrievedChunks = await retrieveRelevantChunks({ question: question.trim(), userId, resourceId, lessonId });
+  let retrievedChunks = [];
+  try {
+    retrievedChunks = await retrieveRelevantChunks({ question: question.trim(), userId, resourceId, lessonId });
+  } catch (error) {
+    // Lesson chat can still teach from generated lesson material if a document
+    // vector service is temporarily unavailable. The standalone RAG API keeps
+    // returning the retrieval error because it has no lesson fallback.
+    if (!lessonReference) throw error;
+    console.warn("[RAG] Retrieval unavailable; using lesson reference:", error.message);
+  }
   const generationStartedAt = performance.now();
-  const result = await generateGroundedAnswer({ question: question.trim(), chunks: retrievedChunks, lessonContext });
+  const result = await generateGroundedAnswer({ question: question.trim(), chunks: retrievedChunks, lessonContext, lessonReference });
   return {
     ...result,
     timings: {

@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Lesson } from "@/models/lesson";
 import { Roadmap } from "@/models/roadmap";
 import { handleGeminiError } from "@/services/gemini/error-handler";
+import { buildLessonReference } from "@/services/rag/generation/context-builder";
 import { queryRag } from "@/services/rag/rag-service";
 import "@/models/phase";
 
@@ -20,13 +21,13 @@ export async function askAiTutor(clerkId, lessonId, userMessage) {
     return await queryRag({
       userId: clerkId,
       question: userMessage,
-      lessonId,
       lessonContext: {
         goal: roadmap.goal,
         module: phase?.title || "Current module",
         title: lesson.title,
         objectives: lesson.learningObjectives || [],
       },
+      lessonReference: buildLessonReference(lesson.aiContent),
     });
   } catch (error) {
     const handled = handleGeminiError(error);
