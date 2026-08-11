@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { GlobalResource } from "@/models/global-resource";
+import { removeOwnedResourceVectors } from "@/services/rag/rag-service";
 
 export const runtime = "nodejs";
 
@@ -15,10 +16,16 @@ export async function PUT(request, { params }) {
     const { id } = await params;
     const body = await request.json();
     await connectToDatabase();
+    const existingResource = await GlobalResource.findOne({ _id: id, clerkId: userId });
+    if (!existingResource) {
+      return NextResponse.json({ error: "Resource not found or unauthorized" }, { status: 404 });
+    }
+    const needsReprocessing = (body.filePath && body.filePath !== existingResource.filePath) || (body.type && body.type !== existingResource.type);
+    if (needsReprocessing) await removeOwnedResourceVectors(userId, existingResource);
     
     const updatedResource = await GlobalResource.findOneAndUpdate(
       { _id: id, clerkId: userId },
-      { $set: body },
+      { $set: { ...body, ...(needsReprocessing && { processedStatus: "pending", processingError: "", processedAt: null }) } },
       { returnDocument: "after", runValidators: true }
     ).lean();
 
@@ -71,6 +78,11 @@ export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
     await connectToDatabase();
+    const resource = await GlobalResource.findOne({ _id: id, clerkId: userId });
+    if (!resource) {
+      return NextResponse.json({ error: "Resource not found or unauthorized" }, { status: 404 });
+    }
+    await removeOwnedResourceVectors(userId, resource);
     
     const result = await GlobalResource.deleteOne({ _id: id, clerkId: userId });
 

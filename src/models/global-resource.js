@@ -35,8 +35,12 @@ const globalResourceSchema = new mongoose.Schema({
   isFavorite: { type: Boolean, default: false },
   status: { type: String, enum: ["unread", "reading", "completed", "archived"], default: "unread" },
   
-  // Architecture preparation for future features
-  processedStatus: { type: String, enum: ["pending", "processed", "failed"], default: "pending" },
+  // RAG processing lifecycle: pending -> processing -> processed | failed.
+  // Existing pending/processed/failed values are retained for stored resources.
+  processedStatus: { type: String, enum: ["pending", "processing", "processed", "failed"], default: "pending" },
+  processingError: { type: String, default: "", trim: true },
+  processingStartedAt: { type: Date, default: null },
+  processedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // Ensure we can query quickly by clerkId and technology

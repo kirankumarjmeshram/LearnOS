@@ -106,7 +106,7 @@ export function AiTutorPanel({ lessonId, onClose }) {
         throw new Error(data.error || "Failed to generate response");
       }
 
-      setMessages((prev) => [...prev, { role: "ai", content: data.response }]);
+      setMessages((prev) => [...prev, { role: "ai", content: data.response, sources: data.sources || [] }]);
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
@@ -202,10 +202,16 @@ export function AiTutorPanel({ lessonId, onClose }) {
                 {msg.role === "user" ? (
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                 ) : (
-                  <div className="prose-ai">
-                    <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
-                      {msg.content}
-                    </ReactMarkdown>
+                  <div className="prose-ai space-y-3">
+                    <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    {msg.sources?.length > 0 && (
+                      <div className="border-t border-[var(--border)] pt-2 text-[10px] text-[var(--muted-foreground)]">
+                        <p className="font-bold uppercase tracking-wider">Sources</p>
+                        <ul className="mt-1 space-y-1">
+                          {msg.sources.map((source) => <li key={`${source.resourceId}-${source.chunkIndex}`}>{source.title} · excerpt {source.chunkIndex + 1}</li>)}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
