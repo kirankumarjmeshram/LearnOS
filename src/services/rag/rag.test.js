@@ -11,6 +11,7 @@ import { normalizeText } from "./ingestion/text-normalizer";
 import { buildMetadataFilter } from "./retrieval/metadata-filter";
 import { toVectorPayload } from "./vector-store/vector-types";
 import { normalizeEmbeddingVector } from "./embeddings/embedding-provider";
+import { buildRagPrompt, canUseLessonTutorFallback } from "./generation/rag-prompt";
 
 describe("RAG ingestion utilities", () => {
   it("selects only supported document formats", () => {
@@ -87,4 +88,25 @@ describe("RAG metadata and context", () => {
   it("normalizes reduced-dimension embedding vectors", () => {
     expect(normalizeEmbeddingVector([3, 4])).toEqual([0.6, 0.8]);
   });
+
+  it("keeps the lesson tutor available when no resource chunks exist", () => {
+    const lessonContext = {
+      goal: "Become a backend engineer",
+      module: "Databases",
+      title: "Database indexing",
+      objectives: ["Explain why indexes improve queries"],
+    };
+    expect(canUseLessonTutorFallback({ lessonContext, lessonReference: "" })).toBe(true);
+    expect(canUseLessonTutorFallback({ lessonContext: null, lessonReference: "" })).toBe(false);
+
+    const prompt = buildRagPrompt({
+      question: "Explain indexes simply.",
+      context: "",
+      lessonContext,
+      lessonReference: "",
+    });
+    expect(prompt).toContain("answer as the normal lesson tutor");
+    expect(prompt).toContain("Database indexing");
+  });
+
 });

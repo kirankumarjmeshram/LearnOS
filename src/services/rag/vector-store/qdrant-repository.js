@@ -42,10 +42,11 @@ export async function deleteResourceVectors(userId, resourceId) {
 export async function searchResourceChunks(vector, filter) {
   await ensureRagCollection();
   const config = getRagConfig();
-  return getQdrantClient().search(config.QDRANT_COLLECTION, {
-    vector,
+  const result = await getQdrantClient().query(config.QDRANT_COLLECTION, {
+    query: vector,
     limit: config.RAG_TOP_K,
     filter,
     with_payload: true,
   });
+  return result.points || [];
 }

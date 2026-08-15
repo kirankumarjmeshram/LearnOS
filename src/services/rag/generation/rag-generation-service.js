@@ -2,13 +2,15 @@ import "server-only";
 
 import { GEMINI_MODEL, getGeminiClient } from "@/services/gemini/client";
 import { buildRagContext, toSources } from "@/services/rag/generation/context-builder";
-import { buildRagPrompt } from "@/services/rag/generation/rag-prompt";
+import { buildRagPrompt, canUseLessonTutorFallback } from "@/services/rag/generation/rag-prompt";
 import { RagError } from "@/services/rag/rag-types";
 
 export async function generateGroundedAnswer({ question, chunks, lessonContext, lessonReference }) {
-  if (!chunks.length && !lessonReference) {
+  const canUseTutorFallback = canUseLessonTutorFallback({ lessonContext, lessonReference });
+  if (!chunks.length && !canUseTutorFallback) {
     return { answer: "I couldn't find relevant information in your processed learning resources for that question.", sources: [] };
   }
+  if (!chunks.length) console.info("[RAG] No indexed context; using the lesson tutor fallback.");
   try {
     const response = await getGeminiClient().models.generateContent({
       model: GEMINI_MODEL,

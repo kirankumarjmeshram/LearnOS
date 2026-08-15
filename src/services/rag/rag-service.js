@@ -8,6 +8,7 @@ import { GlobalResource } from "@/models/global-resource";
 import { Lesson } from "@/models/lesson";
 import { Roadmap } from "@/models/roadmap";
 import { generateGroundedAnswer } from "@/services/rag/generation/rag-generation-service";
+import { canUseLessonTutorFallback } from "@/services/rag/generation/rag-prompt";
 import { isSupportedDocumentPath } from "@/services/rag/ingestion/document-extractor";
 import { ingestResourceDocument } from "@/services/rag/ingestion/ingestion-service";
 import { retrieveRelevantChunks } from "@/services/rag/retrieval/retriever";
@@ -89,11 +90,13 @@ export async function queryRag({ userId, question, resourceId, lessonId, lessonC
   try {
     retrievedChunks = await retrieveRelevantChunks({ question: question.trim(), userId, resourceId, lessonId });
   } catch (error) {
-    // Lesson chat can still teach from generated lesson material if a document
-    // vector service is temporarily unavailable. The standalone RAG API keeps
-    // returning the retrieval error because it has no lesson fallback.
-    if (!lessonReference) throw error;
-    console.warn("[RAG] Retrieval unavailable; using lesson reference:", error.message);
+    // Lesson chat remains available if the vector service or embedding provider
+    // is temporarily unavailable. The standalone RAG API still surfaces the
+    // retrieval error because it has no lesson-tutor context to fall back to.
+    if (!canUseLessonTutorFallback({ lessonContext, lessonReference })) throw error;
+    console.warn("[RAG] Retrieval unavailable; continuing with the lesson tutor fallback.", {
+      reason: error?.code || error?.name || "unknown",
+    });
   }
   const generationStartedAt = performance.now();
   const result = await generateGroundedAnswer({ question: question.trim(), chunks: retrievedChunks, lessonContext, lessonReference });
