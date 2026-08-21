@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import mermaid from "mermaid";
 import { Maximize, X } from "lucide-react";
+import { normalizeMermaidCode } from "@/lib/mermaid";
 
 // Initialize mermaid
 mermaid.initialize({
@@ -21,31 +22,52 @@ mermaid.initialize({
 });
 
 export default function MermaidRenderer({ code }) {
-  const ref = useRef(null);
   const [svgContent, setSvgContent] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!code) return;
-    
-    // Sometimes the AI returns the diagram wrapped in markdown backticks
-    let cleanCode = code.trim();
-    if (cleanCode.startsWith("```mermaid")) {
-      cleanCode = cleanCode.replace(/^```mermaid\n?/, "").replace(/```$/, "").trim();
-    } else if (cleanCode.startsWith("```")) {
-      cleanCode = cleanCode.replace(/^```\n?/, "").replace(/```$/, "").trim();
+    const cleanCode = normalizeMermaidCode(code);
+    let cancelled = false;
+
+    if (!cleanCode) {
+      Promise.resolve().then(() => {
+        if (!cancelled) setError(true);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
     const id = `mermaid-${Math.random().toString(36).substring(7)}`;
-    mermaid.render(id, cleanCode).then(({ svg }) => {
-      // Strip max-width from the svg directly so it flexes properly if needed, though useMaxWidth helps
-      setSvgContent(svg);
-      setError(false);
-    }).catch(e => {
-      console.warn("Mermaid rendering failed:", e);
-      setError(true);
-    });
+
+    async function renderDiagram() {
+      try {
+        // Validate first so invalid model output never reaches Mermaid's error renderer.
+        const parseResult = await mermaid.parse(cleanCode, { suppressErrors: true });
+        if (parseResult === false) throw new Error("Invalid Mermaid syntax.");
+        const { svg } = await mermaid.render(id, cleanCode);
+
+        if (!cancelled) {
+          setSvgContent(svg);
+          setError(false);
+        }
+      } catch (renderError) {
+        if (!cancelled) {
+          console.warn("[MermaidRenderer] Diagram rendering failed.", {
+            codeLength: cleanCode.length,
+            errorName: renderError instanceof Error ? renderError.name : "UnknownError",
+          });
+          setError(true);
+        }
+      }
+    }
+
+    renderDiagram();
+
+    return () => {
+      cancelled = true;
+    };
   }, [code]);
 
   if (error) {

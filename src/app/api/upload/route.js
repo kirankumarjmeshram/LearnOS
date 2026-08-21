@@ -20,12 +20,22 @@ export async function POST(request) {
       return NextResponse.json({ error: "No file provided." }, { status: 400 });
     }
 
+    const maxSize = Number(process.env.UPLOAD_MAX_SIZE || 10 * 1024 * 1024);
+    const allowedExtensions = (process.env.ALLOWED_FILE_TYPES || "pdf,ppt,pptx,doc,docx,txt,md")
+      .split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
+    const originalName = file.name || "uploaded-file";
+    const extension = originalName.includes(".") ? originalName.split(".").pop().toLowerCase() : "";
+    if (!extension || !allowedExtensions.includes(extension)) {
+      return NextResponse.json({ error: "This file type is not allowed." }, { status: 400 });
+    }
+    if (!Number.isFinite(maxSize) || file.size > maxSize) {
+      return NextResponse.json({ error: "This file exceeds the upload size limit." }, { status: 413 });
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
     // Create a unique filename while preserving extension
-    const originalName = file.name || "uploaded-file";
-    const extension = originalName.split(".").pop();
     const uniqueFilename = `${randomUUID()}.${extension}`;
     
     // Save to public/uploads

@@ -44,7 +44,7 @@ function Collapsible({ title, defaultOpen = true, children }) {
   );
 }
 
-function ResourceCard({ resource, onEdit, onDelete, onToggleFavorite }) {
+function ResourceCard({ resource, onEdit, onDelete, onToggleFavorite, onProcess }) {
   const Icon = iconByType[resource.type] || Link2;
   const linkHref = resource.filePath || resource.url || "#";
   const dateStr = resource.createdAt ? formatDistanceToNow(new Date(resource.createdAt), { addSuffix: true }) : "recently";
@@ -127,6 +127,18 @@ function ResourceCard({ resource, onEdit, onDelete, onToggleFavorite }) {
           <p className="mt-3 text-xs text-[var(--muted-foreground)] line-clamp-2">
             {resource.notes}
           </p>
+        )}
+        {resource.filePath && ["pdf", "docx", "text", "markdown"].includes(resource.type) && (
+          <div className="mt-3 flex items-center justify-between gap-2 text-[10px]">
+            <span className={cn("font-bold capitalize", resource.processedStatus === "processed" ? "text-emerald-600" : resource.processedStatus === "failed" ? "text-red-600" : "text-[var(--muted-foreground)]")}>
+              AI: {resource.processedStatus || "pending"}
+            </span>
+            {resource.processedStatus !== "processing" && (
+              <button onClick={() => onProcess(resource)} className="font-bold text-[var(--primary)] hover:underline">
+                {resource.processedStatus === "processed" ? "Reprocess" : "Process for AI"}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -249,6 +261,24 @@ export function ResourcesView({ initialResources }) {
       const { resource: updated } = await res.json();
       setResources(prev => prev.map(r => r._id === updated._id ? { ...r, isFavorite: updated.isFavorite } : r));
     } catch (error) { toast.error("Could not update favorite status"); }
+  };
+
+  const processForAi = async (resource) => {
+    try {
+      setResources((prev) => prev.map((item) => item._id === resource._id ? { ...item, processedStatus: "processing" } : item));
+      const response = await fetch("/api/rag/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resourceId: resource._id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Processing failed");
+      setResources((prev) => prev.map((item) => item._id === resource._id ? data.resource : item));
+      toast.success(`Processed ${data.chunkCount} learning chunks for AI.`);
+    } catch (error) {
+      setResources((prev) => prev.map((item) => item._id === resource._id ? { ...item, processedStatus: "failed" } : item));
+      toast.error(error.message || "Could not process this document for AI.");
+    }
   };
 
   const handleSave = async (e) => {
@@ -378,7 +408,8 @@ export function ResourcesView({ initialResources }) {
               resource={resource} 
               onEdit={handleEdit} 
               onDelete={handleDelete} 
-              onToggleFavorite={toggleFavorite} 
+              onToggleFavorite={toggleFavorite}
+              onProcess={processForAi}
             />
           ))}
         </div>
@@ -398,7 +429,7 @@ export function ResourcesView({ initialResources }) {
                 {roadmapData.resources.length > 0 && (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-4">
                     {roadmapData.resources.map(res => (
-                      <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} />
+                      <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} onProcess={processForAi} />
                     ))}
                   </div>
                 )}
@@ -410,7 +441,7 @@ export function ResourcesView({ initialResources }) {
                     {phaseData.resources.length > 0 && (
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-4 mt-2">
                         {phaseData.resources.map(res => (
-                          <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} />
+                          <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} onProcess={processForAi} />
                         ))}
                       </div>
                     )}
@@ -420,7 +451,7 @@ export function ResourcesView({ initialResources }) {
                       <Collapsible key={lessonTitle} title={lessonTitle} defaultOpen={false}>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-2">
                           {resources.map(res => (
-                            <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} />
+                            <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} onProcess={processForAi} />
                           ))}
                         </div>
                       </Collapsible>
@@ -442,7 +473,7 @@ export function ResourcesView({ initialResources }) {
               </div>
               <div className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {groupedResources.general.map(res => (
-                  <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} />
+                  <ResourceCard key={res._id} resource={res} onEdit={handleEdit} onDelete={handleDelete} onToggleFavorite={toggleFavorite} onProcess={processForAi} />
                 ))}
               </div>
             </div>

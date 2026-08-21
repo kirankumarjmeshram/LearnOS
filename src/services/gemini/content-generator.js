@@ -1,8 +1,10 @@
 import "server-only";
 
 import { z } from "zod";
+import mermaid from "mermaid";
 
 import { connectToDatabase } from "@/lib/mongodb";
+import { normalizeMermaidCode } from "@/lib/mermaid";
 import { Lesson } from "@/models/lesson";
 import { Roadmap } from "@/models/roadmap";
 import { GEMINI_MODEL, getGeminiClient } from "@/services/gemini/client";
@@ -115,6 +117,38 @@ function normalizeGeminiOutput(parsed) {
   return parsed;
 }
 
+async function validateMermaidDiagrams(diagrams, source = "generated") {
+  if (!Array.isArray(diagrams)) return [];
+
+  const validDiagrams = [];
+  let invalidDiagramCount = 0;
+
+  for (const diagram of diagrams) {
+    const code = normalizeMermaidCode(diagram?.code);
+    if (!code) {
+      invalidDiagramCount++;
+      continue;
+    }
+
+    try {
+      const parseResult = await mermaid.parse(code, { suppressErrors: true });
+      if (parseResult === false) throw new Error("Invalid Mermaid syntax.");
+      validDiagrams.push({ ...diagram, code });
+    } catch {
+      invalidDiagramCount++;
+    }
+  }
+
+  if (invalidDiagramCount) {
+    console.warn("[LessonContent] Omitted invalid Mermaid diagrams.", {
+      invalidDiagramCount,
+      source,
+    });
+  }
+
+  return validDiagrams;
+}
+
 // ─── Prompt ──────────────────────────────────────────────────────────────────
 
 function buildPrompt(lesson, roadmapGoal) {
@@ -158,7 +192,7 @@ Requirements:
 - Ensure officialDocs contain REAL, EXISTING URLs.
 - Include 1-2 interactive knowledge checks.
 - Include 1-2 interview questions.
-- Mermaid diagrams must be valid syntax (avoid HTML tags inside nodes).`;
+- Mermaid diagrams must be valid raw Mermaid syntax (no markdown fences or explanatory text). Start with flowchart, graph, or sequenceDiagram and avoid HTML tags inside nodes.`;
 }
 
 // ─── Generation with retry ────────────────────────────────────────────────────
@@ -191,7 +225,10 @@ async function generateContent(lesson, roadmapGoal) {
       if (!result.success) {
         throw new Error(`Content schema validation failed: ${result.error.message}`);
       }
-      return result.data;
+      return {
+        ...result.data,
+        mermaidDiagrams: await validateMermaidDiagrams(result.data.mermaidDiagrams),
+      };
     } catch (error) {
       lastError = handleGeminiError(error);
       
@@ -245,7 +282,13 @@ export async function getOrGenerateLessonContent(lessonId, roadmapGoal) {
   if (!lesson) return { error: "Lesson not found." };
 
   if (lesson.generationStatus === "completed" && lesson.aiContent) {
-    return lesson.aiContent;
+    return {
+      ...lesson.aiContent,
+      mermaidDiagrams: await validateMermaidDiagrams(
+        lesson.aiContent.mermaidDiagrams,
+        "stored",
+      ),
+    };
   }
 
   // Safe Generation Locking: If another request/background task is currently generating it,
@@ -256,7 +299,13 @@ export async function getOrGenerateLessonContent(lessonId, roadmapGoal) {
       await new Promise(res => setTimeout(res, 2000));
       const fresh = await Lesson.findById(lessonId).select("generationStatus aiContent");
       if (fresh?.generationStatus === "completed" && fresh.aiContent) {
-        return fresh.aiContent;
+        return {
+          ...fresh.aiContent,
+          mermaidDiagrams: await validateMermaidDiagrams(
+            fresh.aiContent.mermaidDiagrams,
+            "stored",
+          ),
+        };
       }
       if (fresh?.generationStatus === "failed") {
         return { error: "Lesson generation failed during background processing." };
